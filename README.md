@@ -1,8 +1,41 @@
+<div align="center">
+
 # Asyre Search
 
-**一个 API，解锁全球 21+ 社媒平台数据。**
+> *"他们花了三个月写爬虫，你花了三秒调 API。结果一样，成本不同。"*
 
-不用爬虫，不用逆向，不用维护。一行命令，实时获取抖音、小红书、TikTok、YouTube、Instagram、Twitter、B站等平台的视频详情、用户画像、作品列表、评论、热搜趋势。
+![License](https://img.shields.io/badge/License-Proprietary-blue)
+![Python](https://img.shields.io/badge/Python-3.10%2B-green)
+![Platforms](https://img.shields.io/badge/Platforms-21%2B-orange)
+![Claude Code](https://img.shields.io/badge/Claude%20Code-Skill-blueviolet)
+![AgentSkills](https://img.shields.io/badge/AgentSkills-Standard-yellow)
+
+<br>
+
+**你的竞品在抖音上偷偷换了内容策略，你知道吗？**
+
+**你投的那个博主，80 万粉丝里有多少是真的？**
+
+**你的品牌被人发了避雷视频，已经 10 万播放了，你看到了吗？**
+
+<br>
+
+### 一个 API，解锁全球 21+ 社媒平台数据。
+### 不用爬虫，不用逆向，不用维护。
+
+<br>
+
+抖音 · 小红书 · B站 · TikTok · YouTube · Instagram · Twitter
+<br>
+以及微博、Threads、Pinterest、Spotify 等 14+ 个平台
+
+<br><br>
+
+[**快速开始**](#快速开始) · [**支持平台**](#支持平台) · [**20 个实战场景**](#实战场景) · [**命令一览**](#命令一览)
+
+</div>
+
+<br>
 
 ---
 
