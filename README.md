@@ -105,9 +105,9 @@
 
 ### 🔥 场景一：爆款逆向工程 — "为什么别人的视频能爆？"
 
-你的客户是一家美妆品牌，投了十条抖音视频，播放量���在 5000 以下。但竞品「花西子」的一条视频突然爆了 500 万播放。
+你的客户是一家美妆品牌，投了十条抖音视频，播放量卡在 5000 以下。但竞品「花西子」的一条视频突然爆了 500 万播放。
 
-**传统做法：** 打开抖音 App，手动翻，截图，记到 Excel ���。费时费力，数据还不全。
+**传统做法：** 打开抖音 App，手动翻，截图，记到 Excel 里。费时费力，数据还不全。
 
 **用 Asyre Search：**
 
@@ -169,7 +169,7 @@ asyre-search search "你的品牌名 踩雷" --platform xiaohongshu --type note
 asyre-search search "你的品牌英文名" --platform twitter --type tweet
 ```
 
-**你能在 5 分钟内：** 评估传播规模、判断情绪走向、确认扩散范���、锁定关键传播节点。而不是在各个 App 之间来回切换，边翻边焦虑。
+**你能在 5 分钟内：** 评估传播规模、判断情绪走向、确认扩散范围、锁定关键传播节点。而不是在各个 App 之间来回切换，边翻边焦虑。
 
 ---
 
@@ -198,7 +198,7 @@ asyre-search posts "博主TikTok主��" --platform tiktok --limit 20
 
 ### 🎬 场景五：内容工厂 — "我管 30 个账号，怎么批量找选题？"
 
-你是一家 MCN 的内容总监，手下 30 个账��覆盖美食、旅���、母婴、科技四个赛道。每周一要给每个账号出 3 条选题方向。
+你是一家 MCN 的内容总监，手下 30 个账号覆盖美食、旅行、母婴、科技四个赛道。每周一要给每个账号出 3 条选题方向。
 
 ```bash
 # 四个赛道的热搜，一次拉完
@@ -213,7 +213,7 @@ asyre-search posts "对标账号2" --platform douyin --limit 10
 asyre-search posts "对标账号3" --platform douyin --limit 10
 ```
 
-**你得到的：** 一份覆盖 4 个赛道、12 个对标账号、80+ 条最新内容的数据表。哪些话题在起势、哪些在衰退、哪些账号在变风格——全是结构化数���，直接喂给你的 AI 生成选题报告。
+**你得到的：** 一份覆盖 4 个赛道、12 个对标账号、80+ 条最新内容的数据表。哪些话题在起势、哪些在衰退、哪些账号在变风格——全是结构化数据，直接喂给你的 AI 生成选题报告。
 
 ---
 
@@ -303,7 +303,7 @@ comp_posts = asyre_search("posts", "竞品小红书主页", platform="xiaohongsh
 # → 输出一份结构化的竞品分析报告
 ```
 
-**Asyre Search 是给 Agent 装上的「社媒之眼」。** 结构化 JSON 输出、CLI 调用、环境变���配置——天然适配自动化工作流。你的 Agent 从此拥有实时感知社交媒体的能力。
+**Asyre Search 是给 Agent 装上的「社媒之眼」。** 结构化 JSON 输出、CLI 调用、环境变量配置——天然适配自动化工作流。你的 Agent 从此拥有实时感知社交媒体的能力。
 
 ---
 
@@ -334,7 +334,7 @@ asyre-search comments "视频URL" --limit 200 --raw -o comments.json
 
 ### 📢 场景十一：新品上市监测 — "我们的新品发布后，市场反应怎么样？"
 
-品牌刚发布了一款新产品，���板要你 48 小时内出一份「上市声量报告」。以前你要安排 3 个实习生分头去各个平台截图汇总。
+品牌刚发布了一款新产品，老板要你 48 小时内出一份「上市声量报告」。以前你要安排 3 个实习生分头去各个平台截图汇总。
 
 ```bash
 # 各平台搜索品牌新品关键词
@@ -375,7 +375,7 @@ asyre-search comments "爆款视频URL1" --limit 100
 
 ### 👥 场景十三：用户画像还原 — "我的消费者到底是什么样的人？"
 
-你知道产品卖给了谁，但���不知道他们在网上聊什么、关注什么、对什么有共鸣。
+你知道产品卖给了谁，但你不知道他们在网上聊什么、关注什么、对什么有共鸣。
 
 ```bash
 # 搜索品牌相关的用户��成内容
@@ -458,9 +458,9 @@ asyre-search trending --platform tiktok
 
 ---
 
-### 🍜 场景十七：餐饮选址与菜品策略 — "���个商圈适合开什么店？"
+### 🍜 场景十七：餐饮选址与菜品策略 — "哪个商圈适合开什么店？"
 
-你想在某个城市���某个商圈开一家餐饮店，但不确定定位。
+你想在某个城市的某个商圈开一家餐饮店，但不确定定位。
 
 ```bash
 # 搜索这个商圈的探店内容——看什么品类的店最多人去打卡
@@ -507,11 +507,11 @@ asyre-search posts "UP主2" --platform bilibili --limit 10
 
 ### 📦 场景十九：供应链情报 — "我的供应商有没有问题？"
 
-你是一家品牌的供应链经理，最近听说一个核心���应商可能出了质量问题。
+你是一家品牌的供应链经理，最近听说一个核心供应商可能出了质量问题。
 
 ```bash
 # 搜索供应商的品牌名——看有没有负面内容
-asyre-search search "供应���名 质量" --platform douyin --type video --limit 20
+asyre-search search "供应商名 质量" --platform douyin --type video --limit 20
 asyre-search search "供应商名 ��诉" --platform xiaohongshu --type note --limit 20
 asyre-search search "supplier name quality issue" --platform twitter --type tweet --limit 20
 
@@ -528,7 +528,7 @@ asyre-search search "品类名 质量问题" --platform douyin --type video --li
 
 ### 🌏 场景二十：跨平台内容迁移 — "抖音上的爆款搬到小红书能火吗？"
 
-你运营一个账号矩阵，想把在抖音上验证过的爆款内容迁移到小红书和 B 站。但每个平台的用户和算法���不同。
+你运营一个账号矩阵，想把在抖音上验证过的爆款内容迁移到小红书和 B 站。但每个平台的用户和算法都不同。
 
 ```bash
 # 先看这条内容在抖音的表现
@@ -541,7 +541,7 @@ asyre-search search "相同话题" --platform xiaohongshu --type note --limit 30
 # 搜索相同话题在 B 站的表现——用户期待什么不同？
 asyre-search search "相同话题" --platform bilibili --type video --limit 30
 
-# 对比三个平台��头部内容风格
+# 对比三个平台的头部内容风格
 asyre-search info "小红书爆款URL"
 asyre-search info "B站爆款URL"
 ```
@@ -584,7 +584,7 @@ python3 scripts/asyre_search.py -p douyin trending
 |------|------|
 | `--format table` | 默认，人类可读表格 |
 | `--format json` | 结构化 JSON |
-| `--raw` | 原��� API 响应 |
+| `--raw` | 原始 API 响应 |
 | `-o filename` | 输出到文件 |
 
 ## 环境变量
@@ -601,7 +601,24 @@ python3 scripts/asyre_search.py -p douyin trending
 
 ---
 
-<p align="center">
-  <b>Asyre Search</b> — 让数据驱动每一���决策。<br>
-  Powered by <a href="https://asyre.com">Asyre</a>
-</p>
+<br>
+
+---
+
+<div align="center">
+
+<br>
+
+**别人还在手动截图的时候，你已经在看报告了。**
+
+<br>
+
+![Asyre Search](https://img.shields.io/badge/Asyre%20Search-让数据驱动每一个决策-black?style=for-the-badge)
+
+<br>
+
+Powered by [**Asyre**](https://asyre.com) · Made for AI Agents
+
+<br>
+
+</div>
