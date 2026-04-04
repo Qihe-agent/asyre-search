@@ -261,6 +261,227 @@ asyre-search comments "视频URL" --limit 200 --raw -o comments.json
 
 ---
 
+
+---
+
+### 📢 场景十一：新品上市监测 — "我们的新品发布后，市场反应怎么样？"
+
+品牌刚发布了一款新产品，���板要你 48 小时内出一份「上市声量报告」。以前你要安排 3 个实习生分头去各个平台截图汇总。
+
+```bash
+# 各平台搜索品牌新品关键词
+asyre-search search "品牌名 新品名" --platform douyin --type video --limit 30
+asyre-search search "品牌名 新品名" --platform xiaohongshu --type note --limit 30
+asyre-search search "品牌名 新品名" --platform bilibili --type video --limit 20
+asyre-search search "品牌名 新品名" --platform twitter --type tweet --limit 20
+
+# 分析早期用户评价 — 产品哪里被夸、哪里被骂
+asyre-search comments "第一批评测视频URL" --limit 200
+```
+
+**48 小时报告你能交出：** 全平台提及量、正负面比例、用户最关注的产品特性、与竞品同期上市对比。3 个实习生可以去做更有价值的事了。
+
+---
+
+### 🎨 场景十二：广告素材灵感库 — "我不知道��告该拍成什么样"
+
+你是信息流投手，每周要产出 20 条广告素材创意。灵感枯竭是常态。
+
+```bash
+# 搜同品类的爆款自然流量视频 — 这些就是免费的「广告模板」
+asyre-search search "品类关键词" --platform douyin --type video --limit 50
+asyre-search search "品类关键词" --platform tiktok --type video --limit 50
+
+# 找到播放量最高的几条，深挖它们的结构
+asyre-search info "爆款视频URL1"
+asyre-search info "爆款视频URL2"
+asyre-search info "爆款视频URL3"
+
+# 看评论——用户被什么打动了？
+asyre-search comments "爆款视频URL1" --limit 100
+```
+
+**你要找的不是「广告」而是「内容」。** 用户不会主动看广告，但会看好内容。播放量过百万的自然流量视频，本身就是经过市场验证的创意模板——开头的钩子、中间的转折、结尾的行动号召，全都替你 A/B 测试过了。
+
+---
+
+### 👥 场景十三：用户画像还原 — "我的消费者到底是什么样的人？"
+
+你知道产品卖给了谁，但���不知道他们在网上聊什么、关注什么、对什么有共鸣。
+
+```bash
+# 搜索品牌相关的用户��成内容
+asyre-search search "品牌名 开箱" --platform xiaohongshu --type note --limit 30
+asyre-search search "品牌名 ��评" --platform bilibili --type video --limit 30
+
+# 看发布这些内容的用户是什么人
+asyre-search user "用户1主页URL" --platform xiaohongshu
+asyre-search user "用户2主页URL" --platform xiaohongshu
+asyre-search user "用户3主页URL" --platform xiaohongshu
+
+# 他们还发了什么内容？什么兴趣标签？
+asyre-search posts "用户1主页URL" --platform xiaohongshu --limit 20
+```
+
+**从 20 个真实用户��内容里，你能还原出：** 年龄段、城市线级、兴趣圈层、消费能力、审美偏好��这比任何问卷调查都真实——因为这是他们自愿发布的，不是你花钱让他们填的。
+
+---
+
+### 🏢 场景十四：招聘背调 — "候选人说他做过百万级案例，真的吗？"
+
+一个候选人面试你们的新媒体总监，简历上写着「操盘过 3 个百万粉账号」「单条视频最高 5000 万播放」。
+
+```bash
+# 查他声称操盘的账号
+asyre-search user "账号1主页URL" --platform douyin
+asyre-search user "账号2主页URL" --platform xiaohongshu
+
+# 看这些账号的实际数据——粉丝增长是稳步上升还是某天突然暴增（买粉）？
+asyre-search posts "账号1主页URL" --platform douyin --limit 50
+
+# 他声称的那条 5000 万播放视频
+asyre-search info "视频URL"
+```
+
+**你在验证的不只是数字，而是叙事的可信度。** 一个真正操盘过头部账号的人，他的作品列表里应该有清晰的内容策略迭代痕迹，而不只是一两个运气爆款。
+
+---
+
+### 🌊 场景十五：危机公关复盘 — "上次的公关危机，传播路径到底是什么？"
+
+三个月前品牌经历了一次公关危机，现在尘埃落定，老板要一份「复盘报告」以防下次。
+
+```bash
+# 搜索事件相关内容——按时间排序还原传播时间线
+asyre-search search "品牌名 事件关键词" --platform douyin --type video --limit 50 --raw -o crisis_douyin.json
+asyre-search search "品牌名 事件关键词" --platform xiaohongshu --type note --limit 50 --raw -o crisis_xhs.json
+asyre-search search "品牌名 事件关键词" --platform bilibili --type video --limit 30 --raw -o crisis_bili.json
+asyre-search search "品牌名 事件关键词" --platform twitter --type tweet --limit 30 --raw -o crisis_twitter.json
+
+# 找到传播链的起点——第一个发布的人是谁？
+asyre-search info "最早的那条内容URL"
+asyre-search user "第一个发布者主页" --platform douyin
+```
+
+**复盘报告应该回答：** 起源平台是哪个？第一个传播节点是谁？是自然传播还是有人推动？品牌的回应速度够快吗？哪个平台的负面最难控制？下次预警应该盯哪个平台的哪些信号？
+
+---
+
+### 👗 场景十六：时尚趋势预测 — "下一季什么风格会火？"
+
+你是一个服装品牌的产品经理，正在做下一季的选款决策。
+
+```bash
+# 小红书——中国最大的时尚风向标
+asyre-search trending --platform xiaohongshu
+asyre-search search "2026秋冬穿搭" --platform xiaohongshu --type note --limit 50
+asyre-search search "OOTD" --platform xiaohongshu --type note --limit 30
+
+# Instagram——全球时尚趋势
+asyre-search search "fall fashion 2026" --platform instagram --type reel --limit 30
+asyre-search search "street style" --platform instagram --type reel --limit 30
+
+# TikTok——Z 世代在穿什么
+asyre-search search "outfit inspo" --platform tiktok --type video --limit 30
+asyre-search trending --platform tiktok
+```
+
+**数据告诉你的不是「设计师觉得什么会火」，而是「消费者已经在穿什么」。** 当某个关键词在小红书的搜索量连续三周上升 20%，那不是趋势预测，那是趋势本身——你要做的只是跟上。
+
+---
+
+### 🍜 场景十七：餐饮选址与菜品策略 — "���个商圈适合开什么店？"
+
+你想在某个城市���某个商圈开一家餐饮店，但不确定定位。
+
+```bash
+# 搜索这个商圈的探店内容——看什么品类的店最多人去打卡
+asyre-search search "商圈名 探店" --platform xiaohongshu --type note --limit 30
+asyre-search search "商圈名 美食" --platform douyin --type video --limit 30
+
+# 分析该区域排名前几的餐厅——他们的流量是怎么来的
+asyre-search info "热门探店视频URL"
+asyre-search comments "热门探店视频URL" --limit 100
+
+# 搜索品类热度——哪种菜品正在上升期
+asyre-search search "城市名 咖啡" --platform xiaohongshu --type note --limit 20
+asyre-search search "城市名 烤肉" --platform xiaohongshu --type note --limit 20
+asyre-search search "城市名 东南亚菜" --platform xiaohongshu --type note --limit 20
+```
+
+**你不是在选址，你是在做市场缺口分析。** 如果商圈里咖啡店的探店笔记平均互动 500，但东南亚菜只有 3 篇笔记 —— 要么是没有需求，要么是蓝海。评论区会告诉你是哪种。
+
+---
+
+### 🎮 场景十八：游戏发行与社区运营 — "我们的新游在玩家圈子里口碑怎么样？"
+
+你是一个独立游戏工作室，新游戏刚上线一周。
+
+```bash
+# 搜索��戏名——B 站是核心阵地
+asyre-search search "游戏名" --platform bilibili --type video --limit 50
+asyre-search trending --platform bilibili
+
+# YouTube 国际市场反馈
+asyre-search search "game name review" --platform youtube --type video --limit 30
+
+# 核心评测视频的评论——玩家真实反馈
+asyre-search comments "头部评测视频URL" --platform bilibili --limit 300
+
+# 追踪头部游戏 UP 主是否有覆盖
+asyre-search posts "UP主1" --platform bilibili --limit 10
+asyre-search posts "UP主2" --platform bilibili --limit 10
+```
+
+**评论区就是你最真实的 QA 团队。** 他们会告诉你哪个关卡太难、哪个 Bug 最影响体验、哪个角色最受欢迎。这些反馈来自真正花了时间玩的人，比任何内部测试都有价值。
+
+---
+
+### 📦 场景十九：供应链情报 — "我的供应商有没有问题？"
+
+你是一家品牌的供应链经理，最近听说一个核心���应商可能出了质量问题。
+
+```bash
+# 搜索供应商的品牌名——看有没有负面内容
+asyre-search search "供应���名 质量" --platform douyin --type video --limit 20
+asyre-search search "供应商名 ��诉" --platform xiaohongshu --type note --limit 20
+asyre-search search "supplier name quality issue" --platform twitter --type tweet --limit 20
+
+# 如果找到了投诉视频——扒评论看严重程度
+asyre-search comments "投诉视频URL" --limit 100
+
+# 搜索行业关键词——是个案还是行业性问题
+asyre-search search "品类名 质量问题" --platform douyin --type video --limit 20
+```
+
+**社交媒体是最早的预警系统。** 质量问题从工厂到新闻可能要 3 个月，但从工厂到抖音评论区只需要 3 天。一个消费者拍了一条「开箱翻车」视频，下面 50 条评论都说「我也是」——这个信号比任何供应商审计都来得快。
+
+---
+
+### 🌏 场景二十：跨平台内容迁移 — "抖音上的爆款搬到小红书能火吗？"
+
+你运营一个账号矩阵，想把在抖音上验证过的爆款内容迁移到小红书和 B 站。但每个平台的用户和算法���不同。
+
+```bash
+# 先看这条内容在抖音的表现
+asyre-search info "抖音爆款视频URL"
+asyre-search comments "抖音爆款视频URL" --limit 100
+
+# 搜索相同话题在小红书的表现——内容形式有什么不同？
+asyre-search search "相同话题" --platform xiaohongshu --type note --limit 30
+
+# 搜索相同话题在 B 站的表现——用户期待什么不同？
+asyre-search search "相同话题" --platform bilibili --type video --limit 30
+
+# 对比三个平台��头部内容风格
+asyre-search info "小红书爆款URL"
+asyre-search info "B站爆款URL"
+```
+
+**同一个话题，三个平台三种玩法：** 抖音要短平快 15 秒钩子；小红书要精致图文 + 干货清单；B 站要深度 + 人格化。数据会告诉你每个平台的用户在这个话题上最吃哪一套——然后你才知道怎么「翻译」你的内容，而不是简单地「搬运」。
+
+---
+
 ## 快速开始
 
 ```bash
