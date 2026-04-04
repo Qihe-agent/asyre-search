@@ -1,0 +1,11 @@
+__pycache__/
+*.pyc
+*.pyo
+.env
+.env.*
+!.env.example
+proxy.db
+*.db
+*.bak
+node_modules/
+.DS_Store
