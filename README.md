@@ -173,7 +173,7 @@ asyre-search search "你的品牌英文名" --platform twitter --type tweet
 
 ---
 
-### 🛒 场景四��跨境选品 — "TikTok 上什么东西正在爆？"
+### 🛒 场景四：跨境选品 — "TikTok 上什么东西正在爆？"
 
 你做跨境电商，需要每周找到下一个潜在爆品。以前靠人工刷 TikTok For You 页面碰运气。
 
@@ -189,7 +189,7 @@ asyre-search search "cleaning hack" --platform tiktok --type video --limit 30
 asyre-search info "https://www.tiktok.com/@user/video/xxxxx"
 
 # 再查这个博主 — 是不是经常带货？其他视频表现如何？
-asyre-search posts "博主TikTok主��" --platform tiktok --limit 20
+asyre-search posts "博主TikTok主页" --platform tiktok --limit 20
 ```
 
 **选品逻辑：** 找到播放量 > 100 万但商品链接还没有被大量跟卖的视频 → 这就是窗口期。你从发现到上架如果能在 48 小时内完成，就能吃到第一波流量红利。
@@ -244,7 +244,7 @@ asyre-search search "品牌名 真实测评" --platform xiaohongshu --type note
 你是一个独立音乐人，刚发了一首新歌。你想知道类似风格的歌曲在各个平台的传播情况，找到最合适的推广渠道。
 
 ```bash
-# 看类似风格的歌在抖音��的热度
+# 看类似风格的歌在抖音上的热度
 asyre-search search "独立民谣" --platform douyin --type video --limit 30
 
 # 查 B 站音乐区 — 哪些翻唱/二创播放量高
@@ -273,7 +273,7 @@ asyre-search search "奶茶店名 城市名" --platform xiaohongshu --type note 
 # 看抖音上有没有探店视频
 asyre-search search "奶茶店名" --platform douyin --type video --limit 20
 
-# 找到探店达人的视频 �� 分析哪种内容形式带来的互动最高
+# 找到探店达人的视频——分析哪种内容形式带来的互动最高
 asyre-search info "探店视频URL"
 asyre-search comments "探店视频URL" --limit 50
 ```
@@ -284,7 +284,7 @@ asyre-search comments "探店视频URL" --limit 50
 
 ### 🧠 场景九：AI Agent 自主调研 — "让 Agent 自己去查"
 
-你给客户部署了一个 AI 业务助手。客户说：「帮我分析一下我们品牌和竞品在社交媒体��的声量对比。」
+你给客户部署了一个 AI 业务助手。客户说：「帮我分析一下我们品牌和竞品在社交媒体上的声量对比。」
 
 Agent 不需要人工操作，直接调用 Asyre Search：
 
@@ -307,7 +307,7 @@ comp_posts = asyre_search("posts", "竞品小红书主页", platform="xiaohongsh
 
 ---
 
-### 📐 场景十：��术研究 — "我需要大规模社媒数据做分析"
+### 📐 场景十：学术研究 — "我需要大规模社媒数据做分析"
 
 你是一名研究社交媒体传播学的博士生，课题是「短视频平台上健康信息的传播特征」。你需要收集数据但不会写爬虫。
 
@@ -351,7 +351,7 @@ asyre-search comments "第一批评测视频URL" --limit 200
 
 ---
 
-### 🎨 场景十二：广告素材灵感库 — "我不知道��告该拍成什么样"
+### 🎨 场景十二：广告素材灵感库 — "我不知道广告该拍成什么样"
 
 你是信息流投手，每周要产出 20 条广告素材创意。灵感枯竭是常态。
 
@@ -378,9 +378,9 @@ asyre-search comments "爆款视频URL1" --limit 100
 你知道产品卖给了谁，但你不知道他们在网上聊什么、关注什么、对什么有共鸣。
 
 ```bash
-# 搜索品牌相关的用户��成内容
+# 搜索品牌相关的用户生成内容
 asyre-search search "品牌名 开箱" --platform xiaohongshu --type note --limit 30
-asyre-search search "品牌名 ��评" --platform bilibili --type video --limit 30
+asyre-search search "品牌名 测评" --platform bilibili --type video --limit 30
 
 # 看发布这些内容的用户是什么人
 asyre-search user "用户1主页URL" --platform xiaohongshu
@@ -391,7 +391,7 @@ asyre-search user "用户3主页URL" --platform xiaohongshu
 asyre-search posts "用户1主页URL" --platform xiaohongshu --limit 20
 ```
 
-**从 20 个真实用户��内容里，你能还原出：** 年龄段、城市线级、兴趣圈层、消费能力、审美偏好��这比任何问卷调查都真实——因为这是他们自愿发布的，不是你花钱让他们填的。
+**从 20 个真实用户的内容里，你能还原出：** 年龄段、城市线级、兴趣圈层、消费能力、审美偏好。这比任何问卷调查都真实——因为这是他们自愿发布的，不是你花钱让他们填的。
 
 ---
 
@@ -486,7 +486,7 @@ asyre-search search "城市名 东南亚菜" --platform xiaohongshu --type note 
 你是一个独立游戏工作室，新游戏刚上线一周。
 
 ```bash
-# 搜索��戏名——B 站是核心阵地
+# 搜索游戏名——B 站是核心阵地
 asyre-search search "游戏名" --platform bilibili --type video --limit 50
 asyre-search trending --platform bilibili
 
@@ -512,7 +512,7 @@ asyre-search posts "UP主2" --platform bilibili --limit 10
 ```bash
 # 搜索供应商的品牌名——看有没有负面内容
 asyre-search search "供应商名 质量" --platform douyin --type video --limit 20
-asyre-search search "供应商名 ��诉" --platform xiaohongshu --type note --limit 20
+asyre-search search "供应商名 投诉" --platform xiaohongshu --type note --limit 20
 asyre-search search "supplier name quality issue" --platform twitter --type tweet --limit 20
 
 # 如果找到了投诉视频——扒评论看严重程度
