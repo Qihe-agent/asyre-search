@@ -146,6 +146,72 @@ def cmd_raw(args):
     _output(data, "json", output_file=args.output)
 
 
+# ── Workflow command handlers ────────────────────────────────────
+
+def _output_workflow(result, args):
+    """Output a WorkflowResult based on format flags."""
+    if args.raw or args.format == "json":
+        print(json.dumps(result.data, ensure_ascii=False, indent=2))
+    else:
+        print(result.markdown)
+
+    if args.output:
+        with open(args.output, "w", encoding="utf-8") as f:
+            json.dump({
+                "data": result.data,
+                "blueprint_spec": result.blueprint_spec,
+                "metadata": result.metadata,
+            }, f, ensure_ascii=False, indent=2)
+        print(f"\n✅ Full output saved to {args.output}", file=sys.stderr)
+
+    if result.errors:
+        print(f"\n⚠️ {len(result.errors)} step(s) had errors:", file=sys.stderr)
+        for e in result.errors:
+            print(f"  - {e['step']}: {e['error']}", file=sys.stderr)
+
+    print(f"\n📊 {result.metadata.get('api_calls', 0)} API calls in {result.metadata.get('elapsed_seconds', 0)}s [{result.status}]", file=sys.stderr)
+
+
+def cmd_workflow_analyze(args):
+    api_key = _load_api_key()
+    from scripts.workflows.analyze import AnalyzeWorkflow
+    wf = AnalyzeWorkflow(api_key, args.platform, args.error_policy)
+    result = wf.run(target=args.target, limit=args.limit)
+    _output_workflow(result, args)
+
+
+def cmd_workflow_compare(args):
+    api_key = _load_api_key()
+    from scripts.workflows.compare import CompareWorkflow
+    wf = CompareWorkflow(api_key, args.platform, args.error_policy)
+    result = wf.run(targets=args.targets, limit=args.limit)
+    _output_workflow(result, args)
+
+
+def cmd_workflow_scout(args):
+    api_key = _load_api_key()
+    from scripts.workflows.scout import ScoutWorkflow
+    wf = ScoutWorkflow(api_key, args.platform, args.error_policy)
+    result = wf.run(keyword=args.keyword, limit=args.limit)
+    _output_workflow(result, args)
+
+
+def cmd_workflow_audit(args):
+    api_key = _load_api_key()
+    from scripts.workflows.audit import AuditWorkflow
+    wf = AuditWorkflow(api_key, args.platform, args.error_policy)
+    result = wf.run(target=args.target, brand_category=args.brand_category, limit=args.limit)
+    _output_workflow(result, args)
+
+
+def cmd_workflow_monitor(args):
+    api_key = _load_api_key()
+    from scripts.workflows.monitor import MonitorWorkflow
+    wf = MonitorWorkflow(api_key, args.platforms[0] if args.platforms else "douyin", args.error_policy)
+    result = wf.run(keyword=args.keyword, platforms=args.platforms)
+    _output_workflow(result, args)
+
+
 # ── Helpers ───────────────────────────────────────────────────────
 
 def _get_adapter(platform: str, api_key: str) -> PlatformAdapter:
@@ -207,6 +273,39 @@ def main():
     p.add_argument("endpoint")
     p.add_argument("--params", nargs="*")
     p.set_defaults(func=cmd_raw)
+
+    # ── Workflow commands ──────────────────────────────────────────
+
+    p = sub.add_parser("analyze", help="📊 账号全景分析")
+    p.add_argument("target", help="User ID or URL")
+    p.add_argument("--limit", type=int, default=50, help="Max posts to analyze")
+    p.add_argument("--error-policy", choices=["continue", "abort"], default="continue")
+    p.set_defaults(func=cmd_workflow_analyze)
+
+    p = sub.add_parser("compare", help="📊 竞品对比分析")
+    p.add_argument("targets", nargs="+", help="2+ user IDs or URLs")
+    p.add_argument("--limit", type=int, default=30)
+    p.add_argument("--error-policy", choices=["continue", "abort"], default="continue")
+    p.set_defaults(func=cmd_workflow_compare)
+
+    p = sub.add_parser("scout", help="🔍 内容探查/选题分析")
+    p.add_argument("keyword")
+    p.add_argument("--limit", type=int, default=20)
+    p.add_argument("--error-policy", choices=["continue", "abort"], default="continue")
+    p.set_defaults(func=cmd_workflow_scout)
+
+    p = sub.add_parser("audit", help="🔍 达人评估")
+    p.add_argument("target", help="User ID or URL")
+    p.add_argument("--brand-category", help="Brand category for relevance scoring")
+    p.add_argument("--limit", type=int, default=30)
+    p.add_argument("--error-policy", choices=["continue", "abort"], default="continue")
+    p.set_defaults(func=cmd_workflow_audit)
+
+    p = sub.add_parser("monitor", help="🌐 跨平台舆情监测")
+    p.add_argument("keyword")
+    p.add_argument("--platforms", nargs="+", default=["douyin", "xiaohongshu", "bilibili"])
+    p.add_argument("--error-policy", choices=["continue", "abort"], default="continue")
+    p.set_defaults(func=cmd_workflow_monitor)
 
     args = parser.parse_args()
     if not args.command:

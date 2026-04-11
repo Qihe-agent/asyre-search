@@ -46,7 +46,7 @@ class PlatformAdapter:
         """Send GET request to API."""
         url = urljoin(self.BASE_URL + "/", endpoint.lstrip("/"))
         try:
-            resp = self.session.get(url, params=params, timeout=30)
+            resp = self.session.get(url, params=params, timeout=60)
             resp.raise_for_status()
             return resp.json()
         except requests.exceptions.HTTPError as e:
@@ -59,7 +59,7 @@ class PlatformAdapter:
         """Send POST request to API."""
         url = urljoin(self.BASE_URL + "/", endpoint.lstrip("/"))
         try:
-            resp = self.session.post(url, json=data, params=params, timeout=30)
+            resp = self.session.post(url, json=data, params=params, timeout=60)
             resp.raise_for_status()
             return resp.json()
         except requests.exceptions.HTTPError as e:
