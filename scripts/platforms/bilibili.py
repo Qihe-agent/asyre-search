@@ -40,57 +40,34 @@ class BilibiliAdapter(PlatformAdapter):
     def get_info(self, url_or_id: str) -> dict:
         """Get video detail."""
         bvid = self.extract_id(url_or_id) if url_or_id.startswith("http") else url_or_id
-        return self._get(
-            "/api/v1/bilibili/web/fetch_one_video",
-            params={"bv_id": bvid},  # TODO: verify parameter name
-        )
+        return self._call("info", bv_id=bvid)
 
     def get_user(self, url_or_id: str) -> dict:
         """Get user profile."""
         mid = self._extract_mid(url_or_id) if url_or_id.startswith("http") else url_or_id
-        return self._get(
-            "/api/v1/bilibili/web/fetch_user_profile",
-            params={"mid": mid},  # TODO: verify parameter name
-        )
+        return self._call("user", mid=mid)
 
     def get_posts(self, url_or_id: str, limit: int = 20, cursor: int = 0) -> dict:
         """Get user's videos."""
         mid = self._extract_mid(url_or_id) if url_or_id.startswith("http") else url_or_id
-        return self._get(
-            "/api/v1/bilibili/web/fetch_user_post_videos",
-            params={
-                "mid": mid,  # TODO: verify parameter name
-                "pn": (cursor // limit) + 1 if limit else 1,
-                "ps": min(limit, 30),
-            },
-        )
+        return self._call("posts", mid=mid,
+                          pn=(cursor // limit) + 1 if limit else 1,
+                          ps=min(limit, 30))
 
     def get_comments(self, url_or_id: str, limit: int = 50, cursor: int = 0) -> dict:
         """Get video comments."""
         bvid = self.extract_id(url_or_id) if url_or_id.startswith("http") else url_or_id
-        return self._get(
-            "/api/v1/bilibili/web/fetch_video_comments",
-            params={
-                "bv_id": bvid,  # TODO: verify parameter name
-                "pn": (cursor // limit) + 1 if limit else 1,
-            },
-        )
+        return self._call("comments", bv_id=bvid,
+                          pn=(cursor // limit) + 1 if limit else 1)
 
     def get_trending(self) -> dict:
         """Get Bilibili hot search."""
-        return self._get("/api/v1/bilibili/web/fetch_hot_search")
+        return self._call("trending")
 
     def search(self, keyword: str, search_type: str = "video", limit: int = 20) -> dict:
         """Search Bilibili content."""
-        return self._get(
-            "/api/v1/bilibili/web/fetch_search_result",
-            params={
-                "keyword": keyword,
-                "search_type": search_type,  # TODO: verify parameter name
-                "page": 1,
-                "page_size": min(limit, 20),
-            },
-        )
+        return self._call("search", keyword=keyword, order="totalrank",
+                          page=1, page_size=min(limit, 20))
 
     # ── Formatting ────────────────────────────────────────────────
 

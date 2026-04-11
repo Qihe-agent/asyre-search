@@ -18,11 +18,9 @@ class XiaohongshuAdapter(PlatformAdapter):
         """Extract note_id from a Xiaohongshu URL."""
         if "xhslink.com" in url:
             url = self.resolve_short_url(url)
-        # /explore/note_id or /discovery/item/note_id
         m = re.search(r"/(?:explore|discovery/item)/([a-f0-9]+)", url)
         if m:
             return m.group(1)
-        # Fallback
         return url.strip()
 
     def _extract_user_id(self, url: str) -> str:
@@ -39,29 +37,36 @@ class XiaohongshuAdapter(PlatformAdapter):
     def get_info(self, url_or_id: str) -> dict:
         """Get note detail."""
         note_id = self.extract_id(url_or_id) if url_or_id.startswith("http") else url_or_id
-        return self._get(
-            "/api/v1/xiaohongshu/web/v2/fetch_note_detail",
-            params={"note_id": note_id},  # TODO: verify parameter name
-        )
+        return self._call("info", note_id=note_id)
 
     def get_user(self, url_or_id: str) -> dict:
         """Get user info."""
         user_id = self._extract_user_id(url_or_id) if url_or_id.startswith("http") else url_or_id
-        return self._get(
-            "/api/v1/xiaohongshu/web/v2/fetch_user_info",
-            params={"user_id": user_id},  # TODO: verify parameter name
-        )
+        return self._call("user", user_id=user_id)
+
+    def get_posts(self, url_or_id: str, limit: int = 20, cursor: int = 0) -> dict:
+        """Get user's posted notes."""
+        user_id = self._extract_user_id(url_or_id) if url_or_id.startswith("http") else url_or_id
+        params = {"user_id": user_id}
+        if cursor:
+            params["lastCursor"] = str(cursor)
+        return self._call("posts", **params)
 
     def search(self, keyword: str, search_type: str = "note", limit: int = 20) -> dict:
         """Search notes."""
-        return self._get(
-            "/api/v1/xiaohongshu/web/v2/search_notes",
-            params={
-                "keyword": keyword,
-                "page": 1,
-                "page_size": min(limit, 20),  # TODO: verify parameter name
-            },
-        )
+        return self._call("search", keyword=keyword, page=1)
+
+    def get_trending(self) -> dict:
+        """Get Xiaohongshu hot list."""
+        return self._call("trending")
+
+    def get_comments(self, url_or_id: str, limit: int = 50, cursor: int = 0) -> dict:
+        """Get note comments."""
+        note_id = self.extract_id(url_or_id) if url_or_id.startswith("http") else url_or_id
+        params = {"note_id": note_id}
+        if cursor:
+            params["start"] = str(cursor)
+        return self._call("comments", **params)
 
     # ── Formatting ────────────────────────────────────────────────
 
@@ -135,11 +140,13 @@ class XiaohongshuAdapter(PlatformAdapter):
         for path in [
             lambda d: d.get("data", {}).get("note_detail", {}),
             lambda d: d.get("data", {}).get("items", [{}])[0].get("note_card", {}) if d.get("data", {}).get("items") else {},
+            # app/get_note_info returns data as list
+            lambda d: d.get("data", [{}])[0].get("note_list", [{}])[0] if isinstance(d.get("data"), list) and d.get("data") else {},
             lambda d: d.get("data", {}),
         ]:
             try:
                 result = path(data)
-                if result and (result.get("title") or result.get("desc")):
+                if result and (result.get("title") or result.get("desc") or result.get("liked_count") is not None):
                     return result
             except (KeyError, IndexError, TypeError):
                 continue
@@ -151,6 +158,7 @@ class XiaohongshuAdapter(PlatformAdapter):
             return {}
         for path in [
             lambda d: d.get("data", {}).get("user", {}),
+            lambda d: d.get("data", {}).get("data", {}),
             lambda d: d.get("data", {}),
         ]:
             try:

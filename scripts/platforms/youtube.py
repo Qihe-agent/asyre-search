@@ -16,19 +16,15 @@ class YouTubeAdapter(PlatformAdapter):
 
     def extract_id(self, url: str) -> str:
         """Extract video ID from a YouTube URL."""
-        # youtu.be/VIDEO_ID
         m = re.search(r"youtu\.be/([A-Za-z0-9_-]{11})", url)
         if m:
             return m.group(1)
-        # youtube.com/watch?v=VIDEO_ID
         m = re.search(r"[?&]v=([A-Za-z0-9_-]{11})", url)
         if m:
             return m.group(1)
-        # youtube.com/shorts/VIDEO_ID
         m = re.search(r"/shorts/([A-Za-z0-9_-]{11})", url)
         if m:
             return m.group(1)
-        # youtube.com/embed/VIDEO_ID
         m = re.search(r"/embed/([A-Za-z0-9_-]{11})", url)
         if m:
             return m.group(1)
@@ -36,15 +32,12 @@ class YouTubeAdapter(PlatformAdapter):
 
     def _extract_channel_id(self, url: str) -> str:
         """Extract channel ID or handle from URL."""
-        # /channel/UC...
         m = re.search(r"/channel/(UC[A-Za-z0-9_-]+)", url)
         if m:
             return m.group(1)
-        # /@handle
         m = re.search(r"/@([A-Za-z0-9_.-]+)", url)
         if m:
             return m.group(1)
-        # /c/custom_name
         m = re.search(r"/c/([A-Za-z0-9_.-]+)", url)
         if m:
             return m.group(1)
@@ -55,18 +48,30 @@ class YouTubeAdapter(PlatformAdapter):
     def get_info(self, url_or_id: str) -> dict:
         """Get video detail."""
         video_id = self.extract_id(url_or_id) if url_or_id.startswith("http") else url_or_id
-        return self._get(
-            "/api/v1/youtube/web/fetch_video_detail",
-            params={"video_id": video_id},  # TODO: verify parameter name
-        )
+        return self._call("info", video_id=video_id)
 
     def get_user(self, url_or_id: str) -> dict:
         """Get channel detail."""
         channel_id = self._extract_channel_id(url_or_id) if url_or_id.startswith("http") else url_or_id
-        return self._get(
-            "/api/v1/youtube/web/fetch_channel_detail",
-            params={"channel_id": channel_id},  # TODO: verify parameter name
-        )
+        return self._call("user", channel_id=channel_id)
+
+    def get_posts(self, url_or_id: str, limit: int = 20, cursor: int = 0) -> dict:
+        """Get channel videos."""
+        channel_id = self._extract_channel_id(url_or_id) if url_or_id.startswith("http") else url_or_id
+        return self._call("posts", channel_id=channel_id)
+
+    def search(self, keyword: str, search_type: str = "video", limit: int = 20) -> dict:
+        """Search YouTube content."""
+        return self._call("search", search_query=keyword)
+
+    def get_trending(self) -> dict:
+        """Get YouTube trending videos."""
+        return self._call("trending")
+
+    def get_comments(self, url_or_id: str, limit: int = 50, cursor: int = 0) -> dict:
+        """Get video comments."""
+        video_id = self.extract_id(url_or_id) if url_or_id.startswith("http") else url_or_id
+        return self._call("comments", video_id=video_id)
 
     # ── Formatting ────────────────────────────────────────────────
 

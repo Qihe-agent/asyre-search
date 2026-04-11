@@ -1,0 +1,69 @@
+{
+  "_comment": "Maps CLI actions to specific TikHub endpoints. Format: 'module/endpoint_name' or {variant: 'module/endpoint_name'} for multi-variant actions.",
+
+  "douyin": {
+    "info": {
+      "by_url": "app_v3/fetch_one_video_by_share_url",
+      "by_id": "app_v3/fetch_one_video"
+    },
+    "user": {
+      "by_uid": "web/fetch_user_profile_by_uid",
+      "by_sec_uid": "app_v3/handler_user_profile"
+    },
+    "posts": "app_v3/fetch_user_post_videos",
+    "search": "search/fetch_general_search_v2",
+    "trending": "app_v3/fetch_hot_search_list",
+    "comments": "app_v3/fetch_video_comments"
+  },
+
+  "xiaohongshu": {
+    "info": "app/get_note_info",
+    "user": "web/get_user_info",
+    "posts": "web/get_user_notes_v2",
+    "search": "web/search_notes",
+    "search_users": "web/search_users",
+    "trending": "web_v2/fetch_hot_list",
+    "comments": "app/get_note_comments"
+  },
+
+  "bilibili": {
+    "info": "web/fetch_one_video",
+    "user": "web/fetch_user_profile",
+    "posts": "web/fetch_user_post_videos",
+    "search": "web/fetch_general_search",
+    "trending": "web/fetch_hot_search",
+    "comments": "web/fetch_video_comments"
+  },
+
+  "tiktok": {
+    "info": "app_v3/fetch_one_video",
+    "user": "web/fetch_user_profile",
+    "posts": "app_v3/fetch_user_post_videos",
+    "search": "web/fetch_general_search",
+    "trending": "web/fetch_trending_post",
+    "comments": "app_v3/fetch_video_comments"
+  },
+
+  "youtube": {
+    "info": "web/get_video_info",
+    "user": "web/get_channel_info",
+    "posts": "web/get_channel_videos",
+    "search": "web/get_general_search",
+    "trending": "web/get_trending_videos",
+    "comments": "web/get_video_comments"
+  },
+
+  "instagram": {
+    "info": "v2/fetch_post_info",
+    "user": "v2/fetch_user_info",
+    "posts": "v2/fetch_user_posts",
+    "search": "v2/general_search",
+    "comments": "v2/fetch_post_comments"
+  },
+
+  "twitter": {
+    "info": "web/fetch_tweet_detail",
+    "user": "web/fetch_user_profile",
+    "trending": "web/fetch_trending"
+  }
+}

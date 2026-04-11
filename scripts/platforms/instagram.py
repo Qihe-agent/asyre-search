@@ -16,7 +16,6 @@ class InstagramAdapter(PlatformAdapter):
 
     def extract_id(self, url: str) -> str:
         """Extract shortcode from an Instagram URL."""
-        # /p/SHORTCODE/ or /reel/SHORTCODE/ or /tv/SHORTCODE/
         m = re.search(r"/(?:p|reel|tv)/([A-Za-z0-9_-]+)", url)
         if m:
             return m.group(1)
@@ -24,7 +23,6 @@ class InstagramAdapter(PlatformAdapter):
 
     def _extract_username(self, url: str) -> str:
         """Extract username from an Instagram URL."""
-        # instagram.com/username (not /p/, /reel/, /explore/, etc.)
         m = re.search(r"instagram\.com/([A-Za-z0-9_.]+)/?(?:\?|$)", url)
         if m:
             return m.group(1)
@@ -34,19 +32,27 @@ class InstagramAdapter(PlatformAdapter):
 
     def get_info(self, url_or_id: str) -> dict:
         """Get post detail by shortcode or URL."""
-        shortcode = self.extract_id(url_or_id) if url_or_id.startswith("http") else url_or_id
-        return self._get(
-            "/api/v1/instagram/v2/fetch_post_detail",
-            params={"shortcode": shortcode},  # TODO: verify parameter name
-        )
+        code_or_url = url_or_id if url_or_id.startswith("http") else url_or_id
+        return self._call("info", code_or_url=code_or_url)
 
     def get_user(self, url_or_id: str) -> dict:
         """Get user info by username or URL."""
         username = self._extract_username(url_or_id) if url_or_id.startswith("http") else url_or_id
-        return self._get(
-            "/api/v1/instagram/v2/fetch_user_info",
-            params={"username": username},  # TODO: verify parameter name
-        )
+        return self._call("user", username=username)
+
+    def get_posts(self, url_or_id: str, limit: int = 20, cursor: int = 0) -> dict:
+        """Get user's posts."""
+        username = self._extract_username(url_or_id) if url_or_id.startswith("http") else url_or_id
+        return self._call("posts", username=username)
+
+    def search(self, keyword: str, search_type: str = "general", limit: int = 20) -> dict:
+        """Search Instagram content."""
+        return self._call("search", keyword=keyword)
+
+    def get_comments(self, url_or_id: str, limit: int = 50, cursor: int = 0) -> dict:
+        """Get post comments."""
+        code_or_url = url_or_id if url_or_id.startswith("http") else url_or_id
+        return self._call("comments", code_or_url=code_or_url)
 
     # ── Formatting ────────────────────────────────────────────────
 

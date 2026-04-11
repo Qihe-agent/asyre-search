@@ -18,11 +18,9 @@ class TikTokAdapter(PlatformAdapter):
         """Extract aweme_id from a TikTok URL."""
         if "vm.tiktok.com" in url:
             url = self.resolve_short_url(url)
-        # /video/1234567890
         m = re.search(r"/video/(\d+)", url)
         if m:
             return m.group(1)
-        # /photo/1234567890
         m = re.search(r"/photo/(\d+)", url)
         if m:
             return m.group(1)
@@ -35,7 +33,6 @@ class TikTokAdapter(PlatformAdapter):
         m = re.search(r"secUid=([^&]+)", url)
         if m:
             return m.group(1)
-        # /@username pattern — return the username, caller may need secUid lookup
         m = re.search(r"/@([A-Za-z0-9_.]+)", url)
         if m:
             return m.group(1)
@@ -45,46 +42,34 @@ class TikTokAdapter(PlatformAdapter):
 
     def get_info(self, url_or_id: str) -> dict:
         """Get video detail by aweme_id or URL."""
-        if url_or_id.startswith("http"):
-            aweme_id = self.extract_id(url_or_id)
-        else:
-            aweme_id = url_or_id
-        return self._get(
-            "/api/v1/tiktok/app/v3/fetch_one_video",
-            params={"aweme_id": aweme_id},  # TODO: verify parameter name
-        )
+        aweme_id = self.extract_id(url_or_id) if url_or_id.startswith("http") else url_or_id
+        return self._call("info", aweme_id=aweme_id)
 
     def get_user(self, url_or_id: str) -> dict:
         """Get user profile by secUid or URL."""
         sec_uid = self._extract_sec_uid(url_or_id) if url_or_id.startswith("http") else url_or_id
-        return self._get(
-            "/api/v1/tiktok/web/fetch_user_profile",
-            params={"secUid": sec_uid},  # TODO: verify parameter name
-        )
+        return self._call("user", secUid=sec_uid)
 
     def get_posts(self, url_or_id: str, limit: int = 20, cursor: int = 0) -> dict:
         """Get user's posted videos."""
         sec_uid = self._extract_sec_uid(url_or_id) if url_or_id.startswith("http") else url_or_id
-        return self._get(
-            "/api/v1/tiktok/app/v3/fetch_user_post",
-            params={
-                "secUid": sec_uid,  # TODO: verify parameter name
-                "max_cursor": cursor,
-                "count": min(limit, 20),
-            },
-        )
+        # If it looks like a username (@handle), pass as unique_id
+        if not sec_uid.startswith("MS4wLj"):  # secUid always starts with this
+            return self._call("posts", unique_id=sec_uid, max_cursor=cursor, count=min(limit, 20))
+        return self._call("posts", sec_user_id=sec_uid, max_cursor=cursor, count=min(limit, 20))
+
+    def search(self, keyword: str, search_type: str = "video", limit: int = 20) -> dict:
+        """Search TikTok content."""
+        return self._call("search", keyword=keyword, offset=0)
+
+    def get_trending(self) -> dict:
+        """Get TikTok trending posts."""
+        return self._call("trending")
 
     def get_comments(self, url_or_id: str, limit: int = 50, cursor: int = 0) -> dict:
         """Get video comments."""
         aweme_id = self.extract_id(url_or_id) if url_or_id.startswith("http") else url_or_id
-        return self._get(
-            "/api/v1/tiktok/app/v3/fetch_video_comments",
-            params={
-                "aweme_id": aweme_id,  # TODO: verify parameter name
-                "cursor": cursor,
-                "count": min(limit, 50),
-            },
-        )
+        return self._call("comments", aweme_id=aweme_id, cursor=cursor, count=min(limit, 50))
 
     # ── Formatting ────────────────────────────────────────────────
 

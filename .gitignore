@@ -9,3 +9,7 @@ proxy.db
 *.bak
 node_modules/
 .DS_Store
+
+# Generated registry (regenerate via: python3 scripts/generate_registry.py)
+registry/api_registry.json
+registry/ENDPOINTS.md

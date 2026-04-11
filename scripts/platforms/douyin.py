@@ -16,18 +16,14 @@ class DouyinAdapter(PlatformAdapter):
 
     def extract_id(self, url: str) -> str:
         """Extract aweme_id from a Douyin URL."""
-        # Short link: resolve first
         if "v.douyin.com" in url:
             url = self.resolve_short_url(url)
-        # /video/1234567890
         m = re.search(r"/video/(\d+)", url)
         if m:
             return m.group(1)
-        # /note/1234567890
         m = re.search(r"/note/(\d+)", url)
         if m:
             return m.group(1)
-        # Fallback: treat as raw ID
         return url.strip()
 
     def _extract_sec_uid(self, url: str) -> str:
@@ -47,74 +43,39 @@ class DouyinAdapter(PlatformAdapter):
     def get_info(self, url_or_id: str) -> dict:
         """Get video detail by share URL or aweme_id."""
         if url_or_id.startswith("http"):
-            return self._get(
-                "/api/v1/douyin/app/v3/fetch_one_video_by_share_url",
-                params={"share_url": url_or_id},  # TODO: verify parameter name
-            )
-        return self._get(
-            "/api/v1/douyin/app/v3/fetch_one_video",
-            params={"aweme_id": url_or_id},
-        )
+            return self._call("info", variant="by_url", share_url=url_or_id)
+        return self._call("info", variant="by_id", aweme_id=url_or_id)
 
     def get_user(self, url_or_id: str) -> dict:
         """Get user profile by sec_uid or URL."""
         sec_uid = self._extract_sec_uid(url_or_id) if url_or_id.startswith("http") else url_or_id
-        # Try numeric UID first, then sec_uid
         if sec_uid.isdigit():
-            return self._get(
-                "/api/v1/douyin/web/fetch_user_profile_by_uid",
-                params={"uid": sec_uid},  # TODO: verify parameter name
-            )
-        return self._get(
-            "/api/v1/douyin/app/v3/handler_user_profile",
-            params={"sec_user_id": sec_uid},  # TODO: verify parameter name
-        )
+            return self._call("user", variant="by_uid", uid=sec_uid)
+        return self._call("user", variant="by_sec_uid", sec_user_id=sec_uid)
 
     def get_posts(self, url_or_id: str, limit: int = 20, cursor: int = 0) -> dict:
         """Get user's post videos."""
         sec_uid = self._extract_sec_uid(url_or_id) if url_or_id.startswith("http") else url_or_id
-        return self._get(
-            "/api/v1/douyin/app/v3/fetch_user_post_videos",
-            params={
-                "sec_user_id": sec_uid,  # TODO: verify parameter name
-                "max_cursor": cursor,
-                "count": min(limit, 20),
-            },
-        )
+        return self._call("posts", sec_user_id=sec_uid, max_cursor=cursor, count=min(limit, 20))
 
     def search(self, keyword: str, search_type: str = "video", limit: int = 20) -> dict:
         """Search Douyin content."""
-        return self._post(
-            "/api/v1/douyin/search/fetch_general_search_v3",
-            data={
-                "keyword": keyword,
-                "search_type": search_type,  # TODO: verify parameter name
-                "count": min(limit, 20),
-                "offset": 0,
-            },
-        )
+        return self._call("search", keyword=keyword, count=min(limit, 20), cursor=0,
+                          sort_type="0", publish_time="0", filter_duration="0", content_type="0")
 
     def get_trending(self) -> dict:
         """Get Douyin hot search list."""
-        return self._get("/api/v1/douyin/app/v3/fetch_hot_search_list")
+        return self._call("trending")
 
     def get_comments(self, url_or_id: str, limit: int = 50, cursor: int = 0) -> dict:
         """Get video comments."""
         aweme_id = self.extract_id(url_or_id) if url_or_id.startswith("http") else url_or_id
-        return self._get(
-            "/api/v1/douyin/app/v3/fetch_video_comments",
-            params={
-                "aweme_id": aweme_id,
-                "cursor": cursor,
-                "count": min(limit, 50),
-            },
-        )
+        return self._call("comments", aweme_id=aweme_id, cursor=cursor, count=min(limit, 50))
 
     # ── Formatting ────────────────────────────────────────────────
 
     def format_info(self, data: dict) -> str:
         """Format Douyin video info as human-readable text."""
-        # Navigate nested response — API wraps data differently
         aweme = self._dig_aweme(data)
         if not aweme:
             return f"⚠️ 无法解析视频数据，原始响应:\n{self._json_preview(data)}"
@@ -133,7 +94,6 @@ class DouyinAdapter(PlatformAdapter):
         shares = self._compact_number(stats.get("share_count", 0))
         plays = self._compact_number(stats.get("play_count", 0))
 
-        # Extract hashtags from text_extra
         tags = []
         for te in aweme.get("text_extra", []):
             ht = te.get("hashtag_name")
@@ -214,10 +174,8 @@ class DouyinAdapter(PlatformAdapter):
 
     @staticmethod
     def _dig_aweme(data: dict) -> dict:
-        """Navigate nested response to find aweme/video data."""
         if not data:
             return {}
-        # Try common nesting patterns
         for path in [
             lambda d: d.get("data", {}).get("aweme_detail", {}),
             lambda d: d.get("data", {}).get("aweme_details", [{}])[0] if d.get("data", {}).get("aweme_details") else {},
@@ -235,7 +193,6 @@ class DouyinAdapter(PlatformAdapter):
 
     @staticmethod
     def _dig_user(data: dict) -> dict:
-        """Navigate nested response to find user data."""
         if not data:
             return {}
         for path in [
@@ -253,7 +210,6 @@ class DouyinAdapter(PlatformAdapter):
 
     @staticmethod
     def _dig_trending(data: dict) -> list:
-        """Navigate nested response to find trending list."""
         if not data:
             return []
         for path in [
@@ -272,7 +228,6 @@ class DouyinAdapter(PlatformAdapter):
 
     @staticmethod
     def _dig_comments(data: dict) -> list:
-        """Navigate nested response to find comments list."""
         if not data:
             return []
         for path in [
@@ -290,7 +245,6 @@ class DouyinAdapter(PlatformAdapter):
 
     @staticmethod
     def _json_preview(data, max_len=300):
-        """Return truncated JSON for error messages."""
         import json
         s = json.dumps(data, ensure_ascii=False, indent=2)
         if len(s) > max_len:

@@ -16,7 +16,6 @@ class TwitterAdapter(PlatformAdapter):
 
     def extract_id(self, url: str) -> str:
         """Extract tweet ID from a Twitter/X URL."""
-        # /status/1234567890
         m = re.search(r"/status/(\d+)", url)
         if m:
             return m.group(1)
@@ -24,7 +23,6 @@ class TwitterAdapter(PlatformAdapter):
 
     def _extract_username(self, url: str) -> str:
         """Extract username from a Twitter/X URL."""
-        # twitter.com/username or x.com/username (not /status/, /search, /i/, etc.)
         m = re.search(r"(?:twitter\.com|x\.com)/([A-Za-z0-9_]+)/?(?:\?|$)", url)
         if m and m.group(1).lower() not in ("search", "explore", "home", "i", "settings", "messages"):
             return m.group(1)
@@ -35,22 +33,16 @@ class TwitterAdapter(PlatformAdapter):
     def get_info(self, url_or_id: str) -> dict:
         """Get tweet detail."""
         tweet_id = self.extract_id(url_or_id) if url_or_id.startswith("http") else url_or_id
-        return self._get(
-            "/api/v1/twitter/web/fetch_tweet_detail",
-            params={"tweet_id": tweet_id},  # TODO: verify parameter name
-        )
+        return self._call("info", tweet_id=tweet_id)
 
     def get_user(self, url_or_id: str) -> dict:
         """Get user profile by username or URL."""
         username = self._extract_username(url_or_id) if url_or_id.startswith("http") else url_or_id
-        return self._get(
-            "/api/v1/twitter/web/fetch_user_profile",
-            params={"username": username},  # TODO: verify parameter name
-        )
+        return self._call("user", username=username)
 
     def get_trending(self) -> dict:
         """Get Twitter trending topics."""
-        return self._get("/api/v1/twitter/web/fetch_trending")
+        return self._call("trending")
 
     # ── Formatting ────────────────────────────────────────────────
 

@@ -9,6 +9,18 @@ from urllib.parse import urljoin
 
 import requests
 
+# Lazy-loaded singleton registry
+_registry = None
+
+
+def get_registry():
+    """Get or create the shared EndpointRegistry instance."""
+    global _registry
+    if _registry is None:
+        from .registry import EndpointRegistry
+        _registry = EndpointRegistry()
+    return _registry
+
 
 class PlatformAdapter:
     """Asyre Search platform adapter base class."""
@@ -20,6 +32,7 @@ class PlatformAdapter:
 
     def __init__(self, api_key: str):
         self.api_key = api_key
+        self.registry = get_registry()
         self.session = requests.Session()
         self.session.headers.update({
             "Authorization": f"Bearer {api_key}",
@@ -54,6 +67,33 @@ class PlatformAdapter:
         except requests.exceptions.RequestException as e:
             print(f"❌ Request failed: {e}", file=sys.stderr)
             sys.exit(1)
+
+    def _call(self, action: str, variant: str = None, **kwargs) -> dict:
+        """Resolve endpoint from registry and call it.
+
+        Args:
+            action: CLI action name (info, user, posts, search, trending, comments)
+            variant: optional sub-variant (e.g. "by_url", "by_id")
+            **kwargs: parameters to pass to the endpoint
+
+        Returns:
+            API response dict
+        """
+        spec = self.registry.resolve(self.PLATFORM_NAME, action, variant)
+
+        if spec.method == "POST":
+            # Split kwargs: keys in spec.params go to query, rest to body
+            query_params = {}
+            body = {}
+            param_keys = set(spec.params.keys()) if spec.params else set()
+            for k, v in kwargs.items():
+                if k in param_keys:
+                    query_params[k] = v
+                else:
+                    body[k] = v
+            return self._post(spec.path, data=body or None, params=query_params or None)
+        else:
+            return self._get(spec.path, params=kwargs or None)
 
     def _handle_error(self, error, resp):
         """Print clear error info and exit."""
