@@ -52,8 +52,7 @@ class PlatformAdapter:
         except requests.exceptions.HTTPError as e:
             self._handle_error(e, resp)
         except requests.exceptions.RequestException as e:
-            print(f"❌ Request failed: {e}", file=sys.stderr)
-            sys.exit(1)
+            raise RuntimeError(f"Request failed: {e}") from e
 
     def _post(self, endpoint: str, data: dict = None, params: dict = None) -> dict:
         """Send POST request to API."""
@@ -65,8 +64,7 @@ class PlatformAdapter:
         except requests.exceptions.HTTPError as e:
             self._handle_error(e, resp)
         except requests.exceptions.RequestException as e:
-            print(f"❌ Request failed: {e}", file=sys.stderr)
-            sys.exit(1)
+            raise RuntimeError(f"Request failed: {e}") from e
 
     def _call(self, action: str, variant: str = None, **kwargs) -> dict:
         """Resolve endpoint from registry and call it.
@@ -96,13 +94,12 @@ class PlatformAdapter:
             return self._get(spec.path, params=kwargs or None)
 
     def _handle_error(self, error, resp):
-        """Print clear error info and exit."""
+        """Raise RuntimeError with API error details."""
         try:
             body = resp.json()
         except Exception:
             body = resp.text[:500]
-        print(f"❌ API error ({resp.status_code}): {body}", file=sys.stderr)
-        sys.exit(1)
+        raise RuntimeError(f"API error ({resp.status_code}): {body}")
 
     # ── URL detection ─────────────────────────────────────────────
 

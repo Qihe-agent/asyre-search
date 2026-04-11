@@ -204,6 +204,31 @@ def cmd_workflow_audit(args):
     _output_workflow(result, args)
 
 
+def cmd_scenario(args):
+    if args.list or not args.name:
+        from scripts.workflows.scenarios import list_scenarios
+        print(list_scenarios())
+        return
+
+    from scripts.workflows.scenarios import SCENARIOS, ScenarioRunner
+    if args.name not in SCENARIOS:
+        print(f"❌ Unknown scenario: {args.name}", file=sys.stderr)
+        print(f"   Use --list to see available scenarios", file=sys.stderr)
+        sys.exit(1)
+
+    api_key = _load_api_key()
+    platform = args.platform or "xiaohongshu"
+    runner = ScenarioRunner(api_key, platform, args.error_policy, scenario_name=args.name)
+    result = runner.run(
+        target=args.target or "",
+        targets=args.targets or [],
+        keyword=args.keyword or "",
+        platforms=args.platforms,
+        limit=args.limit,
+    )
+    _output_workflow(result, args)
+
+
 def cmd_workflow_monitor(args):
     api_key = _load_api_key()
     from scripts.workflows.monitor import MonitorWorkflow
@@ -307,11 +332,26 @@ def main():
     p.add_argument("--error-policy", choices=["continue", "abort"], default="continue")
     p.set_defaults(func=cmd_workflow_monitor)
 
+    p = sub.add_parser("scenario", help="🎯 运行预设场景 (20 个)")
+    p.add_argument("name", nargs="?", help="Scenario name (use --list to see all)")
+    p.add_argument("--list", action="store_true", help="List all available scenarios")
+    p.add_argument("--target", help="User ID or URL (for account/kol scenarios)")
+    p.add_argument("--targets", nargs="+", help="Multiple user IDs (for compare scenarios)")
+    p.add_argument("--keyword", help="Search keyword (for content/monitor scenarios)")
+    p.add_argument("--platforms", nargs="+", default=["douyin", "xiaohongshu", "bilibili"])
+    p.add_argument("--limit", type=int, default=20)
+    p.add_argument("--error-policy", choices=["continue", "abort"], default="continue")
+    p.set_defaults(func=cmd_scenario)
+
     args = parser.parse_args()
     if not args.command:
         parser.print_help()
         sys.exit(0)
-    args.func(args)
+    try:
+        args.func(args)
+    except RuntimeError as e:
+        print(f"❌ {e}", file=sys.stderr)
+        sys.exit(1)
 
 
 if __name__ == "__main__":
