@@ -1,10 +1,11 @@
 ---
 name: asyre-search
 description: |
-  Asyre Search — 全平台社媒数据查询与深度分析工具。983 个 API 接口覆盖 20 个平台（抖音、小红书、B站、TikTok、YouTube、Instagram、Twitter、微博、快手、知乎等）。
-  内置 5 大分析工作流（账号分析、竞品对比、内容探查、达人评估、跨平台监测）+ 20 个预设场景，一条命令输出完整报告 + Blueprint 可视化规格。
-  触发词: asyre search, 查抖音, 查小红书, 社媒数据, 平台数据, 社媒分析, 竞品分析, 舆情监测, 达人分析, 内容选题, 跨境选品, 账号分析, 品牌监测, KOL评估, 爆款分析, fetch video, get user info, analyze account, compare competitors, social media data
-  每当用户提到社交媒体数据、账号分析、竞品对比、达人评估、内容策略、品牌舆情、跨平台监测等话题时，都应使用此技能。即使用户没有明确说"查数据"，只要涉及社媒平台上的任何数据需求，都属于本技能的范围。
+  社交媒体数据查询与深度分析工具。查抖音、查小红书、查B站、查TikTok、查YouTube、查Instagram、查Twitter、查微博、查快手、查知乎——20个平台、983个API接口。
+  Use this skill when the user wants to: 查博主/网红/账号数据, 看视频播放量/点赞/评论, 搜话题标签/热门内容, 找抖音热搜/trending topics, 监测品牌声量/舆情, 对比竞品社媒表现, 评估KOL/达人合作价值, or analyze any social media content or account.
+  内置 5 大工作流（analyze账号分析、compare竞品对比、scout内容探查、audit达人评估、monitor跨平台监测）+ 20 个预设场景，一条命令输出完整报告 + Blueprint 可视化规格。
+  Trigger whenever the user mentions 抖音/小红书/B站/TikTok/YouTube/Instagram/Twitter or any social platform combined with looking something up, checking data, searching content, finding trends, or monitoring brands.
+  Examples: "抖音上什么话题最火", "帮我查小红书博主", "看看这个TikTok视频数据", "品牌在社媒上的声量", "这个达人值不值得投", "帮我分析竞品", "社媒数据", "爆款分析", "KOL评估".
 ---
 
 # Asyre Search — 全平台社媒数据查询与深度分析
