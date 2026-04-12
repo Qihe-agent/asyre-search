@@ -1,417 +1,228 @@
 ---
 name: asyre-search
 description: |
-  Asyre Search 全平台社媒数据查询与深度分析。支持抖音、小红书、B站、TikTok、YouTube、Instagram、Twitter 等 21+ 平台。
-  采用双 Agent 协作模式：数据猎手负责平台数据采集，趋势分析师负责外部情报补充，主 Agent 整合输出。
-  触发词: asyre search, 查抖音, 查小红书, 社媒数据, 平台数据, 社媒分析, 竞品分析, 舆情监测, 达人分析, 内容选题, 跨境选品, fetch video, get user info
+  Asyre Search — 全平台社媒数据查询与深度分析工具。983 个 API 接口覆盖 20 个平台（抖音、小红书、B站、TikTok、YouTube、Instagram、Twitter、微博、快手、知乎等）。
+  内置 5 大分析工作流（账号分析、竞品对比、内容探查、达人评估、跨平台监测）+ 20 个预设场景，一条命令输出完整报告 + Blueprint 可视化规格。
+  触发词: asyre search, 查抖音, 查小红书, 社媒数据, 平台数据, 社媒分析, 竞品分析, 舆情监测, 达人分析, 内容选题, 跨境选品, 账号分析, 品牌监测, KOL评估, 爆款分析, fetch video, get user info, analyze account, compare competitors, social media data
+  每当用户提到社交媒体数据、账号分析、竞品对比、达人评估、内容策略、品牌舆情、跨平台监测等话题时，都应使用此技能。即使用户没有明确说"查数据"，只要涉及社媒平台上的任何数据需求，都属于本技能的范围。
 ---
 
 # Asyre Search — 全平台社媒数据查询与深度分析
 
-## 执行流程
+## 快速开始
 
-当用户提出社媒相关需求时，严格按照以下流程执行：
+所有命令在服务器上执行。工作目录和环境变量：
+
+```bash
+cd ~/xiu-he/Projects/tikhub-skill
+export TIKHUB_API_KEY="..."  # 从 ~/xiu-he/vault/.env.master 获取
+```
+
+平台代码：`douyin` | `xiaohongshu` | `bilibili` | `tiktok` | `youtube` | `instagram` | `twitter`
+
+还有 13 个平台可通过 `raw` 命令访问：weibo, kuaishou, zhihu, threads, reddit, linkedin, lemon8, pipixia, toutiao, xigua, wechat_channels, wechat_mp
 
 ---
 
-### Phase 0: 需求澄清（最关键的一步）
+## 核心能力：3 层命令体系
 
-**在做任何事之前，先搞清楚用户到底要什么。**
+### 第 1 层：原子命令（单次 API 调用）
 
-用户的第一句话往往是模糊的。你的任务是通过 2-3 轮对话，把模糊需求变成精确的执行方案。
+```bash
+python3 scripts/asyre_search.py info <URL>                           # 自动识别平台，查内容详情
+python3 scripts/asyre_search.py -p <platform> user <ID_or_URL>       # 查用户信息
+python3 scripts/asyre_search.py -p <platform> posts <ID_or_URL>      # 查用户作品列表
+python3 scripts/asyre_search.py -p <platform> search <keyword>       # 搜索内容
+python3 scripts/asyre_search.py -p <platform> trending               # 查热搜/趋势
+python3 scripts/asyre_search.py -p <platform> comments <ID_or_URL>   # 查评论
+python3 scripts/asyre_search.py raw <endpoint> [--params k=v]        # 直接调 983 个 API 中的任意一个
+```
 
-#### 澄清规则
+适用场景：只需要查一条具体的数据。
 
-1. **永远不要假设。** 用户说「帮我分析一下竞品」——竞品是谁？分析哪个平台？你要的是什么维度的分析？
-2. **每次最多问 3 个问题。** 不要一次性丢 10 个问题把用户吓跑。
-3. **给出选项而不是开放提问。** 不要问「你想分析什么？」，而是问「你想看 A 还是 B？」
-4. **用案例引导。** 当用户不确定时，给他一个类似场景的例子，让他说「对，就是这种」或「不，我要的是那种」。
+### 第 2 层：工作流命令（自动编排多次 API 调用）
 
-#### 对话示例
+**优先使用工作流命令。** 它们自动完成数据采集 + 指标计算 + 报告生成，比手动组合原子命令高效 10 倍。
 
-**示例 1：模糊的竞品分析需求**
+```bash
+# 账号全景分析：拉用户信息 → 全部作品 → 逐条详情 → 计算互动率/爆款/内容分布
+python3 scripts/asyre_search.py -p <platform> analyze <user_id>
 
+# 竞品对比：对 2+ 个账号各跑一次 analyze → 交叉对比
+python3 scripts/asyre_search.py -p <platform> compare <user_A> <user_B> [<user_C>...]
+
+# 内容探查：搜索关键词 → Top N 详情 → 分析爆款模式
+python3 scripts/asyre_search.py -p <platform> scout <keyword>
+
+# 达人评估：analyze + 评论质量采样 → 给出投放建议 (INVEST/NEGOTIATE/PASS)
+python3 scripts/asyre_search.py -p <platform> audit <user_id>
+
+# 跨平台监测：在多个平台搜索同一关键词 → 对比声量
+python3 scripts/asyre_search.py monitor <keyword> --platforms douyin xiaohongshu bilibili
+```
+
+通用参数：
+- `--limit N` — 限制分析的作品数（默认 20-50）
+- `--error-policy continue|abort` — 遇到 API 错误继续还是终止（默认 continue）
+- `-o output.json` — 保存完整结果（含 blueprint spec）到文件
+- `--raw` — 输出原始 JSON 而非 Markdown 报告
+
+### 第 3 层：预设场景（20 个命名工作流）
+
+当需求能精确匹配某个场景时，直接用场景命令：
+
+```bash
+# 列出所有场景
+python3 scripts/asyre_search.py scenario --list
+
+# 运行指定场景
+python3 scripts/asyre_search.py -p <platform> scenario <name> --target <user_id>
+python3 scripts/asyre_search.py -p <platform> scenario <name> --keyword <keyword>
+python3 scripts/asyre_search.py -p <platform> scenario <name> --targets <id1> <id2>
+```
+
+#### 场景速查表
+
+| 场景 | 命令 | 适用输入 |
+|------|------|---------|
+| **📊 账号分析类** | | |
+| `account-deepdive` 账号深度分析 | `--target USER_ID` | 全面分析：数据+内容+分布 |
+| `growth-diagnosis` 粉丝增长诊断 | `--target USER_ID` | 互动率健康度+爆款依赖度 |
+| `content-matrix` 内容矩阵分析 | `--target USER_ID` | 内容类型×互动效果矩阵 |
+| **⚔️ 竞品对比类** | | |
+| `competitor-compare` 竞品对比 | `--targets ID1 ID2` | 2-5 个账号全方位对比 |
+| `kol-comparison` 达人横评 | `--targets ID1 ID2` | 多达人性价比对比 |
+| **🔍 达人评估类** | | |
+| `kol-audit` 达人评估 | `--target USER_ID` | 互动真实性+粉丝质量 |
+| `kol-fraud-check` KOL打假 | `--target USER_ID` | 重点检查刷量+水军 |
+| **📝 内容探查类** | | |
+| `viral-reverse` 爆款逆向工程 | `--keyword 关键词` | 找爆款→分析共同特征 |
+| `content-ideas` 内容选题 | `--keyword 关键词` | 发现热门选题+标签策略 |
+| `ad-creative-mining` 广告素材挖掘 | `--keyword 关键词` | 高互动广告创意方向 |
+| `niche-scan` 赛道扫描 | `--keyword 关键词` | 品类生态：热度+竞争度 |
+| **🌐 舆情监测类** | | |
+| `brand-monitor` 品牌声量监测 | `--keyword 品牌名` | 跨平台声量+热搜 |
+| `crisis-alert` 危机预警 | `--keyword 品牌名` | 负面舆情信号 |
+| `new-product-watch` 新品上市监测 | `--keyword 产品名` | 各平台讨论热度 |
+| **🔥 趋势分析类** | | |
+| `trending-now` 实时热搜 | 无需参数 | 当前平台热搜榜 |
+| `industry-trends` 行业趋势 | `--keyword 行业词` | 热搜+搜索交叉分析 |
+| **⭐ 特殊场景** | | |
+| `local-business` 本地商家获客 | `--keyword 地名+品类` | 本地内容生态 |
+| `cross-platform-presence` 跨平台诊断 | `--keyword 品牌名` | 多平台声量对比 |
+| `comment-insight` 评论洞察 | `--target USER_ID` | 评论质量+用户反馈 |
+| `investment-dd` 投资尽调 | `--keyword 品牌名` | 社媒视角的尽调 |
+
+---
+
+## 执行流程
+
+### 收到需求后的决策树
+
+```
+用户提出社媒相关需求
+  │
+  ├─ 需求明确（给了具体账号/链接/关键词+明确的目标）
+  │   → 直接匹配工作流或场景 → 执行
+  │
+  └─ 需求模糊（"帮我分析竞品"、"看看数据"）
+      → 进入需求澄清（下方规则）→ 锁定后执行
+```
+
+### 需求澄清规则（仅在需求模糊时使用）
+
+1. **每次最多问 3 个问题**，给出选项而非开放提问
+2. **用案例引导**：给一个类似场景的例子，让用户说"对就是这种"
+3. **锁定三要素**：谁（账号/品牌）+ 哪（平台）+ 看什么（数据维度）
+
+澄清示例：
 ```
 用户: 帮我分析一下竞品在社媒上的情况
 
-Agent: 好的，我来帮你做竞品社媒分析。先确认几个信息：
-
-1. 竞品是哪个品牌？（如果有多个，先告诉我最重要的 1-2 个）
-2. 你最关心哪个平台？
-   - 🇨🇳 国内：抖音 / 小红书 / B站
-   - 🌏 海外：TikTok / Instagram / YouTube / Twitter
-   - 📊 全平台都看一遍
-3. 你做这个分析的目的是什么？
-   - A. 了解竞品的内容策略（发什么、怎么发、频率如何）
-   - B. 对比声量差距（他们比我们火多少）
-   - C. 找到竞品的弱点（用户吐槽什么）
-   - D. 其他
-
-比如上周有个客户也是做竞品分析，他的需求是：
-「我想知道花西子在小红书上最近 3 个月的爆款笔记都有什么共同特征，
-以及评论区用户最常提到的产品优缺点。」
-你的需求跟这个类似吗？还是侧重点不同？
-
-用户: 差不多，但我想看抖音上的，竞品是完美日记
-
-Agent: 明白了。那我的执行方案是：
-
-📋 **分析计划：完美日记抖音竞品分析**
-- 查完美日记抖音官方账号基本数据（粉丝、总赞、账号信息）
-- 拉最近 50 条作品，找出互动量 Top 10 的爆款
-- 分析爆款的共同特征（时长、发布时间、内容类型、标签）
-- 抽取 3 条爆款的评论各 100 条，提取用户高频关键词
-- Web Search 补充完美日记近期的营销动态和行业背景
-
-需要我开始吗？或者你想调整范围？
+Agent: 好的。先确认几个信息：
+1. 竞品是哪个品牌？（先告诉我最重要的 1-2 个）
+2. 你最关心哪个平台？（国内：抖音/小红书/B站 | 海外：TikTok/Instagram/YouTube）
+3. 分析目的？
+   A. 了解竞品的内容策略
+   B. 对比声量差距
+   C. 找到竞品的弱点（用户吐槽什么）
 ```
 
-**示例 2：想查数据但不知道能查什么**
+澄清完毕后，展示执行计划并确认。
 
-```
-用户: 我想了解一下抖音上的数据
+### 数据采集 + 外部情报
 
-Agent: 没问题！Asyre Search 在抖音上能帮你做很多事。你现在的情况更接近哪个？
+对于深度分析任务，采用**双视角**：
 
-A. 🔗 「我有一个具体的视频链接，想看它的详细数据」
-   → 我可以查播放量、点赞、评论、转发、完播率、发布时间等
+- **数据视角**：用 asyre-search 命令拉平台原生数据（硬指标）
+- **情报视角**：用 Web Search 补充行业背景、趋势、政策变化（软信号）
 
-B. 👤 「我有一个账号，想了解他的整体情况」
-   → 我可以查粉丝数、作品列表、近期表现、内容风格
+以下情况**必须**结合 Web Search：
+- 趋势分析（热搜只是快照，需要时间线）
+- 品牌调研（平台数据+企业背景）
+- 行业报告（白皮书、数据报告）
+- 舆情追溯（事件起因可能不在社媒上）
 
-C. 🔍 「我想搜索一个话题，看相关内容的数据」
-   → 我可以搜关键词，拉出相关视频按热度排序
-
-D. 🔥 「我想知道现在抖音上什么最火」
-   → 我可以直接拉抖音实时热搜榜
-
-E. 🏢 「我是做品牌/竞品分析的，想系统地看一下」
-   → 我会制定一个完整的分析方案
-
-告诉我是哪种，或者直接把链接/账号/关键词发给我也行。
-
-用户: D，我想看热搜
-
-Agent: 好的，直接帮你拉。
-[执行 asyre-search trending --platform douyin]
-```
-
-**示例 3：用户需求很大，需要帮他缩小范围**
-
-```
-用户: 帮我分析整个美妆行业在社交媒体上的状况
-
-Agent: 这是一个很大的课题！整个美妆行业涉及几十个品牌、7+ 个平台。
-为了给你最有价值的分析，我们先聚焦一下：
-
-1. **品牌范围**：你想看哪几个品牌？建议先选 3-5 个最关心的。
-   比如：花西子、完美日记、珀莱雅、薇诺娜、橘朵——这几个你关心哪些？
-   还是说你的品牌是 X，你想看跟你同赛道的竞品？
-
-2. **平台范围**：美妆在不同平台的打法很不同。
-   - 小红书：种草笔记、成分分析、素人真实评价
-   - 抖音：短视频带货、达人推广、品牌自播
-   - B站：长视频深度测评
-   建议先选 1-2 个你最重要的平台。
-
-3. **分析深度**：
-   - ⚡ 快速概览（30 分钟）：3 个品牌 × 1 个平台，看声量和爆款
-   - 📊 标准分析（2 小时）：5 个品牌 × 2 个平台，加评论情感
-   - 🔬 深度报告（半天）：全平台 + 行业趋势 + 用户画像
-
-上周有个客户做的是「珀莱雅 vs 薇诺娜在小红书上的声量和口碑对比」，
-大概 1 小时出结果。你要的范围跟这个差不多吗？
-
-用户: 先做快速概览吧，看花西子、完美日记、珀莱雅在小红书上的情况
-
-Agent: 完美，范围很清晰。执行方案：
-
-📋 **美妆三品牌小红书快速概览**
-1. 三个品牌官方账号基本数据对比
-2. 各品牌最近 20 条笔记的互动数据
-3. 搜索三个品牌关键词，对比提及量和热度
-4. Web Search 补充近期美妆行业动态
-
-开始吗？
-```
-
-**示例 4：达人投放评估**
-
-```
-用户: 有个博主报价 3 万，帮我看看值不值
-
-Agent: 好的，帮你评估达人。我需要几个信息：
-
-1. 博主在哪个平台？（抖音 / 小红书 / B站 / 其他）
-2. 能给我博主的主页链接或者 ID 吗？
-3. 你的产品是什么品类？（这会影响评估标准——美妆和数码的合理互动率完全不同）
-
-我评估达人的维度一般包括：
-- 粉丝质量（是不是刷的）
-- 互动率（跟同层级达人比是高还是低）
-- 内容与你的品牌调性是否匹配
-- 评论区是真实用户还是水军
-- 近期数据趋势（在涨还是在掉）
-
-比如上次有个客户问我一个 50 万粉的小红书美妆博主值不值 5 万，
-我查了之后发现她的互动率只有 0.3%（同层级正常是 2-3%），
-评论区大量一个字的「好」「美」——结论是不值。
-
-你的情况发给我，我帮你看。
-
-用户: 小红书的，链接是 xxx，我是做宠物用品的
-
-Agent: 收到。我现在去查这几个维度：
-1. 基本数据：粉丝、获赞、笔记数
-2. 最近 30 条笔记：平均点赞、收藏、评论
-3. 内容分析：跟宠物品类的相关度
-4. 评论质量：抽 3 条高互动笔记的评论各 100 条
-5. Web Search：看这个博主有没有被曝过数据造假
-
-查完后给你一个「投/不投/需要谈价」的建议。开始？
-```
-
-**示例 5：用户只发了一个链接**
-
-```
-用户: https://v.douyin.com/iYxxxxxxx/
-
-Agent: 收到。这是一条抖音视频链接，我可以帮你：
-
-A. 📊 查这条视频的详细数据（播放量、点赞、评论、转发等）
-B. 👤 查视频作者的账号信息和其他作品
-C. 💬 查这条视频的评论区内容
-D. 🔍 以上都来
-
-哪个？还是直接 D 全部都看？
-
-用户: D
-
-Agent: 好的，全部拉。
-[执行 info → user → posts → comments]
-```
-
----
-
-### Phase 1: 需求理解与计划制定
-
-经过 Phase 0 的澄清后，你已经明确知道用户要什么了。现在制定执行计划。
-
-判断需求属于以下哪类（可以是多类组合）：
-
-| 类型 | 典型需求 | 核心动作 |
-|------|---------|---------|
-| 数据查询 | "帮我查这个视频的数据" | 直接调用 API |
-| 竞品分析 | "分析我和竞品的差距" | 多账号对比 + 评论分析 |
-| 趋势洞察 | "现在什么内容火？" | 热搜 + 搜索 + Web Search |
-| 达人评估 | "这个博主值不值得投？" | 用户信息 + 作品列表 + 评论质量 |
-| 舆情监测 | "看看品牌口碑" | 跨平台搜索 + 评论情感 |
-| 选题策划 | "帮我找内容灵感" | 搜索 + 热搜 + 对标账号 |
-| 市场调研 | "这个品类在社媒上怎么样？" | 搜索 + Web Search + 数据交叉 |
-
-制定明确的执行计划，列出：
-1. 需要查询的平台（哪些平台最相关）
-2. 需要使用的命令组合
-3. 需要补充的外部信息（Web Search）
-
-**将计划展示给用户确认后再执行。**
-
----
-
-### Phase 2: 双 Agent 协作
-
-将任务拆分给两个角色，各自独立思考后汇总：
-
-#### 🔍 Agent A — 数据猎手 (Data Hunter)
-
-**职责：** 平台原生数据采集与结构化分析
-
-- 使用 `asyre-search` 命令获取平台数据
-- 关注硬指标：播放量、点赞量、评论量、粉丝数、发布频率
-- 做数据对比、排序、异常检测
-- 输出结构化数据表格
-
-**思考框架：**
-```
-1. 用户的核心问题是什么？需要哪些数据来回答？
-2. 应该查哪些平台？优先级如何？
-3. 需要哪些维度的数据？（用户/作品/评论/趋势）
-4. 数据之间有什么关联可以挖掘？
-5. 有没有反常数据需要深挖？
-```
-
-#### 🌐 Agent B — 趋势研究员 (Trend Analyst)
-
-**职责：** 外部情报收集与趋势判断
-
-- 使用 Web Search 获取行业报告、新闻、分析文章
-- 关注软信号：行业趋势、政策变化、消费者情绪转向、平台算法变化
-- 提供背景上下文，解释"为什么"数据是这样的
-- 补充 Agent A 无法从平台数据中获取的信息
-
-**思考框架：**
-```
-1. 这个话题/品牌/品类最近有什么大事发生？
-2. 行业趋势是什么？有没有相关的研究报告？
-3. 平台最近有没有算法调整或政策变化影响数据？
-4. 竞争格局是什么？有没有新玩家入场？
-5. 消费者偏好有没有变化？
-```
-
----
-
-### Phase 3: 整合与执行
-
-主 Agent 综合两个角色的分析：
-
-1. **交叉验证**：Agent A 的数据 + Agent B 的情报是否一致？如果矛盾，深挖原因
-2. **补充查询**：根据初步分析结果，决定是否需要追加查询
-3. **中间确认**：如果发现了用户可能关心的意外发现，暂停并告知用户，确认是否需要调整方向
-
-**中间确认示例：**
-```
-Agent: 查到一个值得注意的情况——完美日记的抖音账号最近 2 周没有更新，
-但小红书更新频率反而提高了。这可能意味着他们在调整平台策略。
-你要不要我也顺便看看他们小红书的情况？还是先只关注抖音？
-```
-
-4. **生成洞察**：不只是罗列数据，而是得出可执行的结论
-
----
-
-### Phase 4: 输出格式
-
-最终输出应包含：
+### 输出格式
 
 ```markdown
-## 📊 分析报告：[用户的问题]
+## 📊 分析报告：[主题]
 
 ### 核心发现
-- [3-5 条关键发现，直接回答用户的问题]
+- [3-5 条关键发现，直接回答用户问题]
 
-### 平台数据
-[Agent A 的数据表格和分析]
+### 数据详情
+[表格、排行、对比]
 
-### 行业背景
-[Agent B 的趋势和情报]
-
-### 交叉分析
-[两个 Agent 的信息交叉验证后的深度洞察]
+### 行业/背景（如有 Web Search）
+[外部情报]
 
 ### 行动建议
-[基于以上分析，用户应该怎么做？具体的、可执行的建议]
-
-### 后续可以深挖的方向（可选）
-[如果分析中发现了有价值但超出本次范围的线索，列在这里供用户决定是否继续]
+[具体、可执行的下一步]
 ```
 
-输出报告后，主动询问：
-```
-以上是分析结果。你觉得哪个方向需要再深入看看？
-或者有没有其他想了解的？
-```
+当工作流输出包含 `blueprint_spec` 时，可以交给 blueprinter 技能生成可视化图表。使用 `-o output.json` 保存完整输出，blueprint_spec 在 JSON 的 `blueprint_spec` 字段中。
 
 ---
 
-## 可用命令
+## 需求→命令 快速路由
 
+| 用户说的话 | 你应该用的命令 |
+|-----------|-------------|
+| "分析一下这个账号" | `analyze <user_id>` |
+| "帮我看看这个博主值不值得投" | `audit <user_id>` |
+| "对比一下这几个竞品" | `compare <id1> <id2>` |
+| "现在什么内容火/帮我找选题" | `scout <keyword>` |
+| "看看品牌口碑/舆情" | `monitor <keyword> --platforms ...` |
+| "查这个视频的数据" | `info <URL>` |
+| "拉一下热搜" | `trending` |
+| "查这个用户的评论区" | `comments <ID>` |
+| 给了一个链接，没说干什么 | 先问：查数据？查作者？查评论？还是全看？ |
+
+---
+
+## API 注册表
+
+本工具包含从 TikHub OpenAPI 自动生成的完整接口注册表：
+
+- `registry/api_registry.json` — 983 个端点的完整 schema（参数、类型、必填/可选）
+- `registry/ENDPOINTS.md` — 10000+ 行的人类可读接口手册
+- `registry/action_map.json` — 7 个核心平台的 action→endpoint 映射
+
+当需要调用注册表中没有被工作流覆盖的接口时，查阅 `registry/ENDPOINTS.md` 找到端点路径和参数，然后用 `raw` 命令调用。
+
+重新生成注册表（TikHub API 更新后）：
 ```bash
-# 视频/帖子详情（自动识别平台）
-python3 scripts/asyre_search.py info <URL>
-
-# 用户信息
-python3 scripts/asyre_search.py user <URL_or_ID> --platform <platform>
-
-# 用户作品列表
-python3 scripts/asyre_search.py posts <URL_or_ID> --platform <platform> [--limit N]
-
-# 搜索内容
-python3 scripts/asyre_search.py search <keyword> --platform <platform> [--type video|note] [--limit N]
-
-# 热搜趋势
-python3 scripts/asyre_search.py -p <platform> trending
-
-# 评论列表
-python3 scripts/asyre_search.py comments <URL_or_ID> --platform <platform> [--limit N]
-
-# 直接调用 API
-python3 scripts/asyre_search.py raw <endpoint> [--params key=value]
-```
-
-### 支持平台
-
-`douyin` | `xiaohongshu` | `bilibili` | `tiktok` | `youtube` | `instagram` | `twitter`
-
-还支持微博、Threads、Pinterest、Spotify、SoundCloud、Telegram 等 14+ 平台（通过 `raw` 命令）。
-
-### 输出控制
-
-| 参数 | 说明 |
-|------|------|
-| `--format json/table/text` | 输出格式 |
-| `--raw` | 原始 JSON |
-| `-o filename` | 保存到文件 |
-
----
-
-## Web Search 配合策略
-
-在以下情况下，**必须**结合 Web Search 使用：
-
-1. **趋势分析** — 平台热搜只是当前快照，Web Search 补充趋势的时间线和原因
-2. **品牌调研** — 平台数据看声量，Web Search 看企业背景、融资、团队
-3. **行业报告** — 搜索相关的行业白皮书、数据报告作为分析框架
-4. **政策影响** — 平台政策、监管变化会直接影响数据表现
-5. **事件追溯** — 舆情事件的起因、经过，可能不在社媒平台上
-
-**搜索建议关键词模板：**
-```
-"{品牌名} 行业分析 2026"
-"{品类} 市场规模 报告"
-"{平台名} 算法更新 最新"
-"{品牌名} 融资 估值"
-"{话题} 趋势 预测"
+python3 scripts/generate_registry.py
 ```
 
 ---
 
-## 场景速查表
-
-在理解用户需求后，快速匹配适用场景：
-
-| 场景 | 关键命令 | 是否需要 Web Search |
-|------|---------|:------------------:|
-| 爆款逆向工程 | info + posts + comments | 可选 |
-| KOL 打假/达人评估 | user + posts + comments | ✅ 查背景 |
-| 舆情风暴预警 | search(跨平台) + comments | ✅ 查事件 |
-| 跨境电商选品 | trending + search + info | ✅ 查趋势 |
-| MCN 批量选题 | search(多赛道) + posts(对标) | 可选 |
-| 投资尽调 | search + user + posts | ✅ 查企业 |
-| 音乐/影视推广 | search(跨平台) + trending | ✅ 查行业 |
-| 本地商家获客 | search + comments | 可选 |
-| Agent 自动化调研 | 全部命令 | ✅ |
-| 学术研究 | search + comments + raw | ✅ 查文献 |
-| 新品上市监测 | search + trending + comments | ✅ |
-| 广告素材挖掘 | search + info + posts | 可选 |
-| 用户画像分析 | comments + search + user | ✅ 查人群 |
-| 招聘背调 | user + posts(多平台) | ✅ |
-| 危机公关复盘 | search(时间线) + comments | ✅ |
-| 时尚趋势预测 | trending + search(跨平台) | ✅ |
-| 餐饮选址策略 | search + comments | ✅ 查商圈 |
-| 游戏社区运营 | search + comments + posts | ✅ |
-| 供应链情报 | search + comments | ✅ |
-| 跨平台内容迁移 | posts + info(对比格式) | 可选 |
-
----
-
-## 环境变量
+## 环境
 
 | 变量 | 说明 |
 |------|------|
-| `ASYRE_SEARCH_KEY` | API Key（必需，由管理员提供） |
-| `ASYRE_SEARCH_URL` | API 地址（可选，默认自动配置） |
+| `TIKHUB_API_KEY` | API Key（从 `~/xiu-he/vault/.env.master` 获取） |
+| `ASYRE_SEARCH_KEY` | 同上（别名） |
 
-## 依赖
-
-- Python 3.10+
-- `requests`
+依赖：Python 3.10+, `requests`
