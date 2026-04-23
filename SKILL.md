@@ -15,8 +15,8 @@ description: |
 所有命令在服务器上执行。工作目录和环境变量：
 
 ```bash
-cd ~/xiu-he/Projects/tikhub-skill
-export TIKHUB_API_KEY="..."  # 从 ~/xiu-he/vault/.env.master 获取
+cd ~/xiu-he/Projects/moltbot/skills/asyre-search
+export ASYRE_SEARCH_KEY="thp_xxx"  # 在 Asyre Portal 充值后获得
 ```
 
 平台代码：`douyin` | `xiaohongshu` | `bilibili` | `tiktok` | `youtube` | `instagram` | `twitter`
@@ -223,7 +223,7 @@ python3 scripts/generate_registry.py
 
 | 变量 | 说明 |
 |------|------|
-| `TIKHUB_API_KEY` | API Key（从 `~/xiu-he/vault/.env.master` 获取） |
-| `ASYRE_SEARCH_KEY` | 同上（别名） |
+| `ASYRE_SEARCH_KEY` | Asyre API Key（在 Asyre Portal 注册后获得，`thp_` 前缀） |
+| `ASYRE_SEARCH_URL` | 可选，Asyre gateway 地址（默认 `http://13.228.189.206/api/social`） |
 
 依赖：Python 3.10+, `requests`

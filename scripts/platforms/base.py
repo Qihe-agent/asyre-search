@@ -27,7 +27,7 @@ class PlatformAdapter:
 
     PLATFORM_NAME = ""
     PLATFORM_LABEL = ""  # Human-readable name (e.g. "抖音", "TikTok")
-    BASE_URL = os.environ.get("ASYRE_SEARCH_URL", "https://api.tikhub.io")
+    BASE_URL = os.environ.get("ASYRE_SEARCH_URL", "http://13.228.189.206/api/social")
     URL_PATTERNS = []  # List of domain patterns this adapter handles
 
     def __init__(self, api_key: str):

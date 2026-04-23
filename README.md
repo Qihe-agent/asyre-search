@@ -54,7 +54,7 @@ Numbers in parentheses = available API endpoints per platform.
 
 ```bash
 # Set your API key
-export TIKHUB_API_KEY="your_key_here"
+export ASYRE_SEARCH_KEY="thp_xxx"  # your Asyre key
 
 # Atomic: get a video's data
 python3 scripts/asyre_search.py info "https://v.douyin.com/iYxxxxxx/"
@@ -205,7 +205,7 @@ Asyre Search 是一个为 AI Agent 原生设计的社媒数据工具。它将 Ti
 
 ```bash
 # 设置 API Key
-export TIKHUB_API_KEY="your_key_here"
+export ASYRE_SEARCH_KEY="thp_xxx"  # your Asyre key
 
 # 原子命令：查视频数据
 python3 scripts/asyre_search.py info "https://v.douyin.com/iYxxxxxx/"

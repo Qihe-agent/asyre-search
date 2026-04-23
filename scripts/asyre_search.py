@@ -32,11 +32,6 @@ def _load_api_key() -> str:
     key = os.environ.get("ASYRE_SEARCH_KEY")
     if key:
         return key
-    # Fallback to legacy env var
-    key = os.environ.get("TIKHUB_API_KEY")
-    if key:
-        return key
-
     print("❌ ASYRE_SEARCH_KEY not found. Set it via environment variable.", file=sys.stderr)
     sys.exit(1)
 
