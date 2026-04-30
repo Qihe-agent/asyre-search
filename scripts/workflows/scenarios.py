@@ -27,6 +27,13 @@ SCENARIOS = {
         "required": ["target", "platform"],
         "category": "account",
     },
+    "account-pro": {
+        "name": "账号 Pro 分析",
+        "name_en": "Account Pro Analysis",
+        "description": "Pro 级账号分析：趋势 + 节奏 + 标题挖掘 + 评论意图 + 健康度评分 + 优先级诊断（替代 account-deepdive 的轻量版）",
+        "required": ["target", "platform"],
+        "category": "account",
+    },
     "growth-diagnosis": {
         "name": "粉丝增长诊断",
         "name_en": "Growth Diagnosis",
@@ -207,7 +214,9 @@ class ScenarioRunner(WorkflowRunner):
         self._progress(f"🎯 场景: {label}")
 
         # Route to appropriate handler
-        if scenario in ("account-deepdive", "growth-diagnosis", "content-matrix"):
+        if scenario == "account-pro":
+            return self._run_pro_scenario(target, limit)
+        elif scenario in ("account-deepdive", "growth-diagnosis", "content-matrix"):
             return self._run_account_scenario(scenario, target, limit)
         elif scenario in ("competitor-compare", "kol-comparison"):
             return self._run_compare_scenario(scenario, targets, limit)
@@ -230,6 +239,15 @@ class ScenarioRunner(WorkflowRunner):
             return {"error": f"Unknown scenario: {scenario}"}
 
     # ── Account scenarios ────────────────────────────────────────
+
+    def _run_pro_scenario(self, target: str, limit: int) -> dict:
+        """Run Pro account analysis using ProAnalyzeWorkflow."""
+        from .pro import ProAnalyzeWorkflow
+        runner = ProAnalyzeWorkflow(api_key=self.api_key, platform=self.platform)
+        runner.adapter = self.adapter
+        runner._safe_call = self._safe_call
+        runner._progress = self._progress
+        return runner._execute(target=target, limit=limit)
 
     def _run_account_scenario(self, scenario: str, target: str, limit: int) -> dict:
         # Get user info
@@ -571,6 +589,10 @@ class ScenarioRunner(WorkflowRunner):
         # Route to appropriate formatter
         cat = config.get("category", "")
 
+        if scenario == "account-pro":
+            from .pro import ProAnalyzeWorkflow
+            pro = ProAnalyzeWorkflow(api_key=self.api_key, platform=self.platform)
+            return pro._format_markdown(data)
         if cat == "account":
             lines.extend(self._fmt_account(data))
         elif cat == "competition":
