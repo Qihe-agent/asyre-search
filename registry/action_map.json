@@ -1,5 +1,5 @@
 {
-  "_comment": "Maps CLI actions to specific TikHub endpoints. Format: 'module/endpoint_name' or {variant: 'module/endpoint_name'} for multi-variant actions.",
+  "_comment": "Maps CLI actions to specific upstream endpoints. Format: 'module/endpoint_name' or {variant: 'module/endpoint_name'} for multi-variant actions.",
 
   "douyin": {
     "info": {

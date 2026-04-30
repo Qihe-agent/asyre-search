@@ -206,7 +206,7 @@ Agent: 好的。先确认几个信息：
 
 ## API 注册表
 
-本工具包含从 TikHub OpenAPI 自动生成的完整接口注册表：
+本工具包含从上游 OpenAPI 自动生成的完整接口注册表：
 
 - `registry/api_registry.json` — 983 个端点的完整 schema（参数、类型、必填/可选）
 - `registry/ENDPOINTS.md` — 10000+ 行的人类可读接口手册
@@ -214,7 +214,7 @@ Agent: 好的。先确认几个信息：
 
 当需要调用注册表中没有被工作流覆盖的接口时，查阅 `registry/ENDPOINTS.md` 找到端点路径和参数，然后用 `raw` 命令调用。
 
-重新生成注册表（TikHub API 更新后）：
+重新生成注册表（上游 API 更新后）：
 ```bash
 python3 scripts/generate_registry.py
 ```

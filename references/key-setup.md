@@ -8,7 +8,7 @@ How to get an API key, where keys are stored, how to top up, and what to do when
 
 ```
 ┌──────────┐      ┌─────────────────┐      ┌─────────────┐
-│  Client  │ ───→ │  Asyre Gateway  │ ───→ │   TikHub    │
+│  Client  │ ───→ │  Asyre Gateway  │ ───→ │   Upstream  │
 │ (skill)  │      │ (PM2 #19)       │      │  upstream   │
 └──────────┘      └─────────────────┘      └─────────────┘
                   ↓ verifies thp_* key
@@ -30,7 +30,7 @@ How to get an API key, where keys are stored, how to top up, and what to do when
 |----------|------|-------|
 | **Server vault (master)** | `xiuhe-cloud:~/xiu-he/vault/.env.master` | `ASYRE_SEARCH_KEY` + `ASYRE_SEARCH_URL` |
 | **Vault index** | `xiuhe-cloud:~/xiu-he/vault/README.md` | Looked up by humans |
-| **Gateway DB** | `xiuhe-cloud:~/xiu-he/services/tikhub-proxy/proxy.db` | Source of truth for all keys + balances |
+| **Gateway DB** | `xiuhe-cloud:~/xiu-he/services/asyre-gateway/proxy.db` | Source of truth for all keys + balances |
 | **Local Mac (optional)** | `~/.config/asyre/search.env` | Sourced by `~/.zshrc` |
 
 ---
@@ -39,7 +39,7 @@ How to get an API key, where keys are stored, how to top up, and what to do when
 
 ```bash
 ssh xiuhe-cloud
-cd ~/xiu-he/services/tikhub-proxy
+cd ~/xiu-he/services/asyre-gateway
 python3 cli.py create-key 'My-Client-Name' --rate-limit 120 --notes 'description'
 # → outputs: thp_xxxx... (save it, only shown once)
 ```
@@ -81,20 +81,20 @@ curl -H "Authorization: Bearer $ASYRE_SEARCH_KEY" \
 
 ```bash
 # Balance + recent calls
-ssh xiuhe-cloud "cd ~/xiu-he/services/tikhub-proxy && python3 cli.py list-keys"
+ssh xiuhe-cloud "cd ~/xiu-he/services/asyre-gateway && python3 cli.py list-keys"
 
 # Top up by $50
-ssh xiuhe-cloud "cd ~/xiu-he/services/tikhub-proxy && python3 cli.py credit <key_id> 50.00"
+ssh xiuhe-cloud "cd ~/xiu-he/services/asyre-gateway && python3 cli.py credit <key_id> 50.00"
 
 # Last 7 days usage stats for a key
-ssh xiuhe-cloud "cd ~/xiu-he/services/tikhub-proxy && python3 cli.py stats --key <key_id> --days 7"
+ssh xiuhe-cloud "cd ~/xiu-he/services/asyre-gateway && python3 cli.py stats --key <key_id> --days 7"
 
 # Per-endpoint breakdown
-ssh xiuhe-cloud "cd ~/xiu-he/services/tikhub-proxy && python3 cli.py stats-detail <key_id>"
+ssh xiuhe-cloud "cd ~/xiu-he/services/asyre-gateway && python3 cli.py stats-detail <key_id>"
 
 # Revoke / restore a key
-ssh xiuhe-cloud "cd ~/xiu-he/services/tikhub-proxy && python3 cli.py revoke-key <key_id>"
-ssh xiuhe-cloud "cd ~/xiu-he/services/tikhub-proxy && python3 cli.py restore-key <key_id>"
+ssh xiuhe-cloud "cd ~/xiu-he/services/asyre-gateway && python3 cli.py revoke-key <key_id>"
+ssh xiuhe-cloud "cd ~/xiu-he/services/asyre-gateway && python3 cli.py restore-key <key_id>"
 ```
 
 ---
@@ -117,16 +117,16 @@ Skill can't find the env var. Either:
 - Default 60 req/min. Bump with `--rate-limit 120` at create time, or wait 60s.
 
 ### `404 Endpoint not available on this gateway`
-- Path not in gateway's allowlist. Either it's not whitelisted yet, or you're calling a TikHub endpoint that the upstream key doesn't have permission for (typically `web_v3/*`).
+- Path not in gateway's allowlist. Either it's not whitelisted yet, or you're calling a endpoint that the upstream key doesn't have permission for (typically `web_v3/*`).
 
 ### `502 / 504 Gateway Time-out`
-- Transient TikHub upstream issue or nginx timeout. Just retry.
+- Transient upstream issue or nginx timeout. Just retry.
 
 ### `400 from upstream` for `get_user_notes_v2`
 - Some brand official accounts (e.g. 完美日记) reject this endpoint. Try `app_v2/get_user_posted_notes` instead via `raw` command, or skip those users.
 
 ### Pagination stuck at 21 notes
-- TikHub upstream limit on `web/get_user_notes_v2`. The `has_more=true` but `cursor=null` bug is upstream-side. Workaround: try `app/get_user_notes` via `raw` (may need different params).
+- upstream API limit on `web/get_user_notes_v2`. The `has_more=true` but `cursor=null` bug is upstream-side. Workaround: try `app/get_user_notes` via `raw` (may need different params).
 
 ---
 

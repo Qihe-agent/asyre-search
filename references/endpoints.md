@@ -1109,20 +1109,6 @@
 - `GET /api/v1/temp_mail/v1/get_emails_inbox` — Get Emails
 - `GET /api/v1/temp_mail/v1/get_temp_email_address` — Get Temp Email
 
-## TikHub-Downloader-API (2 个接口)
-
-- `GET /api/v1/tikhub/downloader/redirect_download` — 重定向到最新版本的下载链接
-- `GET /api/v1/tikhub/downloader/version` — 检查TikHub下载器的版本更新
-
-## TikHub-User-API (6 个接口)
-
-- `GET /api/v1/tikhub/user/calculate_price` — 计算价格
-- `GET /api/v1/tikhub/user/get_all_endpoints_info` — 获取所有端点信息
-- `GET /api/v1/tikhub/user/get_endpoint_info` — 获取一个端点的信息
-- `GET /api/v1/tikhub/user/get_tiered_discount_info` — 获取阶梯式折扣百分比信息
-- `GET /api/v1/tikhub/user/get_user_daily_usage` — 获取用户每日使用情况
-- `GET /api/v1/tikhub/user/get_user_info` — 获取TikHub用户信息
-
 ## Hybrid-Parsing (2 个接口)
 
 - `GET /api/v1/hybrid/video_data` — 混合解析单一视频接口

@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-"""Generate API registry and ENDPOINTS.md from TikHub OpenAPI spec.
+"""Generate API registry and ENDPOINTS.md from upstream OpenAPI spec.
 
 Usage:
     python3 scripts/generate_registry.py [--spec-url URL] [--output-dir DIR]
 
 This script:
-1. Fetches the OpenAPI spec from TikHub
+1. Fetches the OpenAPI spec from upstream
 2. Parses every endpoint into a structured registry
 3. Writes registry/api_registry.json
 4. Generates registry/ENDPOINTS.md (human/agent-readable reference)
@@ -21,7 +21,7 @@ from datetime import datetime, timezone
 
 import requests
 
-SPEC_URL = "https://api.tikhub.io/openapi.json"
+SPEC_URL = os.environ.get("ASYRE_SEARCH_SPEC_URL", "https://api.tikhub.io/openapi.json")
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 PROJECT_DIR = os.path.dirname(SCRIPT_DIR)
 DEFAULT_OUTPUT_DIR = os.path.join(PROJECT_DIR, "registry")
@@ -279,7 +279,6 @@ PLATFORM_LABELS = {
     "xigua": "西瓜视频 Xigua",
     "wechat_channels": "微信视频号",
     "wechat_mp": "微信公众号",
-    "tikhub": "TikHub Platform",
 }
 
 
@@ -297,7 +296,7 @@ def generate_endpoints_md(platforms: dict) -> str:
         for mod in p["modules"].values()
     )
     lines.append(f"> 共 **{total_endpoints}** 个接口，覆盖 **{len(platforms)}** 个平台")
-    lines.append(f"> Base URL: `https://api.tikhub.io`")
+    lines.append(f"> Base URL: gateway-managed (upstream proxied via Asyre Gateway)")
     lines.append("")
 
     # Quick lookup table
@@ -426,7 +425,7 @@ def generate_endpoints_md(platforms: dict) -> str:
 # ── Main ─────────────────────────────────────────────────────────
 
 def main():
-    parser = argparse.ArgumentParser(description="Generate API registry from TikHub OpenAPI spec")
+    parser = argparse.ArgumentParser(description="Generate API registry from upstream OpenAPI spec")
     parser.add_argument("--spec-url", default=SPEC_URL, help="OpenAPI spec URL")
     parser.add_argument("--output-dir", default=DEFAULT_OUTPUT_DIR, help="Output directory")
     args = parser.parse_args()

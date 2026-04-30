@@ -23,14 +23,14 @@
 
 ## Overview
 
-Asyre Search is an AI-agent-native social media data tool. It wraps 983 TikHub API endpoints across 20 platforms into a 3-layer command system — from single API calls to full analysis workflows — designed to be used by both humans and AI agents.
+Asyre Search is an AI-agent-native social media data tool. It wraps 983 API endpoints across 20 platforms into a 3-layer command system — from single API calls to full analysis workflows — designed to be used by both humans and AI agents.
 
 ### What it does
 
 - **Atomic commands**: Query any post, user, search, trending, or comments on any platform
 - **Workflows**: One command runs a complete analysis pipeline (account deep-dive, competitor comparison, content discovery, KOL audit, cross-platform monitoring)
 - **20 named scenarios**: Pre-configured analysis templates for common business use cases
-- **Auto-generated registry**: 983 endpoints stay in sync with TikHub's API via OpenAPI spec
+- **Auto-generated registry**: 983 endpoints stay in sync with the upstream API via OpenAPI spec
 
 ### Supported Platforms
 
@@ -122,7 +122,7 @@ asyre-search/
 
 ### Registry-Driven Design
 
-Endpoint paths are never hardcoded. A generator script pulls from TikHub's OpenAPI spec and produces a structured registry. Adapters resolve endpoints at runtime via `action_map.json`. When TikHub updates their API:
+Endpoint paths are never hardcoded. A generator script pulls from the upstream OpenAPI spec and produces a structured registry. Adapters resolve endpoints at runtime via `action_map.json`. When upstream updates the API:
 
 ```bash
 python3 scripts/generate_registry.py  # Re-sync all 983 endpoints
@@ -174,7 +174,7 @@ Asyre Source Available License v1.0 — free for personal, educational, and non-
 
 ## 概述
 
-Asyre Search 是一个为 AI Agent 原生设计的社媒数据工具。它将 TikHub 的 983 个 API 端点封装成 3 层命令体系——从单次 API 调用到完整分析工作流——人类和 AI Agent 都能高效使用。
+Asyre Search 是一个为 AI Agent 原生设计的社媒数据工具。它将 983 个 API 端点封装成 3 层命令体系——从单次 API 调用到完整分析工作流——人类和 AI Agent 都能高效使用。
 
 ### 核心能力
 
@@ -256,7 +256,7 @@ asyre-search/
 
 ### 注册表驱动设计
 
-端点路径不再硬编码。生成器脚本从 TikHub 的 OpenAPI 规范拉取并生成结构化注册表。适配器在运行时通过 `action_map.json` 解析端点。TikHub API 更新时：
+端点路径不再硬编码。生成器脚本从上游 OpenAPI 规范拉取并生成结构化注册表。适配器在运行时通过 `action_map.json` 解析端点。上游 API 更新时：
 
 ```bash
 python3 scripts/generate_registry.py  # 一条命令重新同步全部 983 个端点
