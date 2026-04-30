@@ -17,6 +17,8 @@ description: |
 ```bash
 cd ~/xiu-he/Projects/moltbot/skills/asyre-search
 export ASYRE_SEARCH_KEY="thp_xxx"  # 在 Asyre Portal 充值后获得
+
+# 详见 references/key-setup.md — 包含创建 key、充值、限流、故障排查
 ```
 
 平台代码：`douyin` | `xiaohongshu` | `bilibili` | `tiktok` | `youtube` | `instagram` | `twitter`
