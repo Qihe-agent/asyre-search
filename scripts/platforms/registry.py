@@ -83,18 +83,32 @@ class EndpointRegistry:
     # ── Resolution ───────────────────────────────────────────────
 
     def resolve(self, platform: str, action: str, variant: str = None) -> EndpointSpec:
-        """Resolve (platform, action) → EndpointSpec.
+        """Resolve (platform, action) -> first EndpointSpec (legacy single-endpoint path).
+
+        For new code, prefer resolve_chain() which returns the full fallback list.
+        This method preserves backward compatibility by returning only the first endpoint.
+        """
+        chain = self.resolve_chain(platform, action, variant)
+        return chain[0]
+
+    def resolve_chain(self, platform: str, action: str, variant: str = None) -> list:
+        """Resolve (platform, action) -> list[EndpointSpec] fallback chain.
+
+        Mapping forms supported in action_map.json:
+          "module/ep"                  -> single endpoint, returned as 1-element list
+          ["module/ep1", "module/ep2"] -> fallback chain, in priority order
+          {variant: ref}              -> variant dict; ref may itself be string or list
 
         Args:
             platform: e.g. "douyin", "xiaohongshu"
-            action: e.g. "info", "user", "posts", "search", "trending", "comments"
-            variant: optional sub-key, e.g. "by_url", "by_id"
+            action: e.g. "info", "user", "posts", "search"
+            variant: optional sub-key for dict mappings (e.g. "by_url")
 
         Returns:
-            EndpointSpec with method, path, params, body, etc.
+            Non-empty list[EndpointSpec]. Caller iterates and uses first that works.
 
         Raises:
-            KeyError if platform/action not found in action_map.
+            KeyError if platform/action not found.
         """
         plat_map = self._action_map.get(platform)
         if not plat_map:
@@ -104,20 +118,27 @@ class EndpointRegistry:
         if mapping is None:
             raise KeyError(f"Action '{action}' not mapped for platform '{platform}'")
 
-        # Mapping can be a string "module/endpoint" or a dict of variants
+        # Resolve variant dict -> string|list
         if isinstance(mapping, dict):
             if variant:
-                ref = mapping.get(variant)
-                if not ref:
+                mapping = mapping.get(variant)
+                if mapping is None:
                     raise KeyError(f"Variant '{variant}' not found for {platform}/{action}")
             else:
-                # Pick first variant as default
-                ref = next(iter(mapping.values()))
-        else:
-            ref = mapping
+                mapping = next(iter(mapping.values()))
 
-        # ref is "module_key/endpoint_name"
-        return self._resolve_ref(platform, ref)
+        # Normalize to list
+        if isinstance(mapping, str):
+            refs = [mapping]
+        elif isinstance(mapping, list):
+            refs = mapping
+        else:
+            raise ValueError(f"Unexpected mapping type for {platform}/{action}: {type(mapping)}")
+
+        if not refs:
+            raise KeyError(f"Empty endpoint list for {platform}/{action}")
+
+        return [self._resolve_ref(platform, r) for r in refs]
 
     def _resolve_ref(self, platform: str, ref: str) -> EndpointSpec:
         """Resolve a 'module/endpoint_name' reference to EndpointSpec."""

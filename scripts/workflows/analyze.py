@@ -3,6 +3,7 @@
 from .base import WorkflowRunner
 from .metrics import (
     extract_user_metrics, extract_post_ids, extract_post_metrics,
+    extract_post_metrics_from_listitem, extract_post_listitems,
     compute_account_metrics, compact_number,
 )
 
@@ -25,15 +26,41 @@ class AnalyzeWorkflow(WorkflowRunner):
         post_ids = extract_post_ids(posts_data, self.platform)
         self._progress(f"Found {len(post_ids)} posts")
 
-        # Step 3: Batch get post details
+        # Step 3: Extract metrics from posts list directly (cheap path).
+        # Many platforms (XHS web_v2/fetch_home_notes, etc.) include full engagement fields
+        # per note in the list response — no need to re-fetch each one. Saves API calls AND
+        # avoids upstream rate-limiting that often kills the entire workflow.
         post_metrics_list = []
-        batch_size = min(len(post_ids), 20)  # Cap at 20 to limit API calls
-        for i, pid in enumerate(post_ids[:batch_size]):
-            self._progress(f"Fetching post {i+1}/{batch_size}...")
-            detail = self._safe_call(f"get_info_{i}", self.adapter.get_info, pid)
-            pm = extract_post_metrics(detail, self.platform)
+        list_items = extract_post_listitems(posts_data, self.platform)
+        cap = min(len(list_items), limit if limit else len(list_items))
+        list_items = list_items[:cap]
+
+        # First pass: try cheap extraction
+        need_detail_indices = []
+        for i, item in enumerate(list_items):
+            pm = extract_post_metrics_from_listitem(item, self.platform)
             if pm:
                 post_metrics_list.append(pm)
+            else:
+                need_detail_indices.append(i)
+                post_metrics_list.append(None)  # placeholder
+
+        # Second pass: only get_info for items where list was insufficient
+        if need_detail_indices:
+            self._progress(f"Cheap path got {len(list_items) - len(need_detail_indices)}/{len(list_items)}; "
+                           f"fetching detail for {len(need_detail_indices)} remaining...")
+            for i in need_detail_indices:
+                pid = post_ids[i] if i < len(post_ids) else None
+                if not pid:
+                    continue
+                self._progress(f"  detail {i+1}/{len(list_items)}...")
+                detail = self._safe_call(f"get_info_{i}", self.adapter.get_info, pid)
+                pm = extract_post_metrics(detail, self.platform)
+                if pm:
+                    post_metrics_list[i] = pm
+
+        # Drop None placeholders
+        post_metrics_list = [pm for pm in post_metrics_list if pm]
 
         # Step 4: Compute metrics
         account_metrics = compute_account_metrics(user_metrics, post_metrics_list)

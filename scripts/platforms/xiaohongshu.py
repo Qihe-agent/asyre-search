@@ -53,8 +53,61 @@ class XiaohongshuAdapter(PlatformAdapter):
         return self._call("posts", **params)
 
     def search(self, keyword: str, search_type: str = "note", limit: int = 20) -> dict:
-        """Search notes."""
-        return self._call("search", keyword=keyword, page=1)
+        """Search notes/users with keyword variant fallback.
+
+        XHS upstream has counter-intuitive risk control: SHORT keywords are blocked
+        (400) more aggressively than full names (which hit "exact match" path).
+        We try the original keyword first, then progressively shorter variants
+        only if 0 items returned. Endpoint-level fallback is handled by base._call.
+        """
+        action = "search_users" if search_type == "user" else "search"
+
+        variants = [keyword]
+        # Variant 1: drop noise particles (的/之/了) — sometimes matches better
+        for ch in ["的", "之"]:
+            if ch in keyword:
+                stripped = keyword.replace(ch, "")
+                if stripped and stripped not in variants:
+                    variants.append(stripped)
+        # Variant 2: trim long names to 6 chars — last-ditch broad search
+        if len(keyword) > 6:
+            short = keyword[:6]
+            if short not in variants:
+                variants.append(short)
+
+        last_result = None
+        for kw in variants:
+            try:
+                last_result = self._call(action, keyword=kw, page=1)
+            except Exception:
+                continue
+            if self._has_search_results(last_result):
+                if isinstance(last_result, dict):
+                    last_result.setdefault("_asyre_meta", {})["keyword_used"] = kw
+                    if kw != keyword:
+                        last_result["_asyre_meta"]["keyword_variants_tried"] = variants[:variants.index(kw)+1]
+                return last_result
+        return last_result or {}
+
+    @staticmethod
+    def _has_search_results(data: dict) -> bool:
+        """Detect if a search response actually has items (handles XHS double-nesting)."""
+        if not isinstance(data, dict):
+            return False
+        # Try common paths where XHS items show up
+        for path in [
+            lambda d: d.get("data", {}).get("items"),
+            lambda d: d.get("data", {}).get("data", {}).get("items"),
+            lambda d: d.get("data", {}).get("notes"),
+            lambda d: d.get("data", {}).get("users"),
+        ]:
+            try:
+                items = path(data)
+                if items:
+                    return True
+            except (AttributeError, TypeError):
+                continue
+        return False
 
     def get_trending(self) -> dict:
         """Get Xiaohongshu hot list."""

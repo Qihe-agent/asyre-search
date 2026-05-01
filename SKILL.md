@@ -10,6 +10,54 @@ description: |
 
 # Asyre Search — 全平台社媒数据查询与深度分析
 
+
+## 故障处理铁律（必须遵守，违反即导致历史卡死）
+
+历史教训：在 session 39ff9ab1 中，LLM 因为单端点 504 反复 `sleep 30` / `sleep 60` 重试同一个挂掉的端点，
+246 次工具调用大半都浪费在等待已死的端点上。**底层已经内置 fallback 链 + 15s 超时 + 关键词降级**，
+LLM 这一层必须配合下面的铁律：
+
+### 禁止行为 (Never)
+
+1. **禁止 `sleep N && curl ...` 后重试同一个失败端点。** 底层已经做了 fallback，再 sleep 是双重等待。
+2. **禁止单个搜索任务总耗时超过 5 分钟。** 超过即停下，跟用户要 user_id / 主页 URL。
+3. **禁止把API error 504当作账号不存在的信号。** 504 = 上游某个端点临时挂了，换个查法（user_id 直查 / 不同关键词）即可。
+4. **禁止连续 3 次都用同一关键词搜。** 0 items 三次以上立刻换关键词变体（底层已自动做，但你不要再绕回去）。
+
+### 必须行为 (Always)
+
+1. **看到响应里的 `_asyre_meta.endpoint_used`** — 这告诉你哪个端点最终命中了，下次类似账号优先试这个端点
+2. **看到响应里的 `_asyre_meta.fallback_attempts`** — 这是已尝试且失败的端点列表，**不要**再绕回去试它们
+3. **看到响应里的 `_asyre_meta.keyword_used`** — 系统自动降级过的关键词，告诉用户我用了 X 这个变体才命中
+4. **超过 60s 还没拿到数据，立刻停下来重新规划** — 不要继续 sleep
+5. **search 0 items 时**：先检查关键词，再考虑账号是否真不存在（小账号可能不在搜索索引里），最后才让用户提供 URL
+
+### 反模式自检
+
+每次准备 sleep / retry / 用相同参数再发一次时，问自己：
+
+- 上一次为什么失败？（504 vs 400 vs 0 items 各自含义不同）
+- 我现在是否在重复底层已经做过的事情？（fallback / 关键词变体）
+- 我有没有别的查法？（如：search 失败可以让用户给 URL；user_info 失败可以从 note → user 反推）
+
+如果三个问题中任一个回答是"否"，说明你正要踩坑。
+
+### 端点 fallback 链（底层已配置，仅供参考）
+
+XHS 关键 action 的实际尝试顺序：
+
+| Action | 内置 fallback 顺序 |
+|---|---|
+| search | app/search_notes -> app_v2/search_notes -> web_v2/fetch_search_notes -> web/search_notes -> web/search_notes_v3 |
+| search_users | app_v2/search_users -> web_v2/fetch_search_users -> web/search_users |
+| posts | web_v2/fetch_home_notes -> web_v2/fetch_home_notes_app -> web/get_user_notes_v2 -> app_v2/get_user_posted_notes -> app/get_user_notes |
+| user | app/get_user_info -> web/get_user_info -> web/get_user_info_v2 -> app_v2/get_user_info |
+| comments | app/get_note_comments -> web_v2/fetch_note_comments -> web/get_note_comments -> app_v2/get_note_comments |
+
+实测覆盖：曦曦学姐的留学笔记 / Melody 悉尼看房 / 其他腰部 XHS 账号。如遇全链失败，几乎一定是上游 tikhub 限流而非账号问题——立刻让用户提供 user_id 或主页 URL 直查。
+
+---
+
 ## 快速开始
 
 所有命令在服务器上执行。工作目录和环境变量：

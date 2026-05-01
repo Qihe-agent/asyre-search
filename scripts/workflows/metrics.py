@@ -249,3 +249,46 @@ def assess_comment_quality(comments_batches: list[list[dict]]) -> dict:
         "short_comment_ratio": short_ratio,
         "quality": quality,
     }
+
+
+def extract_post_metrics_from_listitem(note: dict, platform: str) -> dict | None:
+    """Extract metrics directly from a note in the posts-list response (no get_info call).
+
+    Many list endpoints (e.g. XHS web_v2/fetch_home_notes) already include all engagement
+    fields per note. Calling get_info per-post just to re-extract the same data wastes API
+    calls AND triggers upstream rate-limiting. Use this when the list response is rich enough.
+
+    Returns None if critical fields missing (caller should fall back to get_info).
+    """
+    if not note:
+        return None
+
+    if platform == "xiaohongshu":
+        likes = note.get("likes")
+        if likes is None and note.get("liked_count") is None:
+            return None
+        return {
+            "id": note.get("id") or note.get("note_id", ""),
+            "title": (note.get("display_title") or note.get("title") or "")[:60],
+            "likes": safe_int(note.get("likes") or note.get("liked_count")),
+            "comments": safe_int(note.get("comments_count")),
+            "collects": safe_int(note.get("collected_count")),
+            "shares": safe_int(note.get("share_count")),
+            "type": "video" if note.get("type") == "video" else "image",
+            "create_time": note.get("create_time"),
+        }
+
+    return None
+
+
+def extract_post_listitems(posts_data: dict, platform: str) -> list:
+    """Return raw note dicts from a posts list response."""
+    if not posts_data:
+        return []
+    data = posts_data.get("data", posts_data)
+    if isinstance(data, dict) and "data" in data:
+        data = data["data"]
+    if platform == "xiaohongshu":
+        return data.get("notes", []) if isinstance(data, dict) else []
+    return []
+

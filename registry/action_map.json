@@ -1,5 +1,5 @@
 {
-  "_comment": "Maps CLI actions to specific upstream endpoints. Format: 'module/endpoint_name' or {variant: 'module/endpoint_name'} for multi-variant actions.",
+  "_comment": "Maps CLI actions to upstream endpoints. Format: 'module/endpoint_name' (single) | ['module/ep1','module/ep2'] (fallback chain — first works wins) | {variant: ref} (multi-variant). Fallback chain prevents single-endpoint outages from killing the action.",
 
   "douyin": {
     "info": {
@@ -17,13 +17,13 @@
   },
 
   "xiaohongshu": {
-    "info": "app/get_note_info",
-    "user": "web/get_user_info",
-    "posts": "web/get_user_notes_v2",
-    "search": "web/search_notes",
-    "search_users": "web/search_users",
-    "trending": "web_v2/fetch_hot_list",
-    "comments": "app/get_note_comments"
+    "info":         ["app/get_note_info", "app/get_note_info_v2", "web/get_note_info_v2"],
+    "user":         ["app/get_user_info", "web/get_user_info", "web/get_user_info_v2", "app_v2/get_user_info"],
+    "posts":        ["web_v2/fetch_home_notes", "web_v2/fetch_home_notes_app", "web/get_user_notes_v2", "app_v2/get_user_posted_notes", "app/get_user_notes"],
+    "search":       ["app/search_notes", "app_v2/search_notes", "web_v2/fetch_search_notes", "web/search_notes", "web/search_notes_v3"],
+    "search_users": ["app_v2/search_users", "web_v2/fetch_search_users", "web/search_users"],
+    "trending":     "web_v2/fetch_hot_list",
+    "comments":     ["app/get_note_comments", "web_v2/fetch_note_comments", "web/get_note_comments", "app_v2/get_note_comments"]
   },
 
   "bilibili": {

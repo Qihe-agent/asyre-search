@@ -9,6 +9,32 @@ from urllib.parse import urljoin
 
 import requests
 
+# Per-endpoint hard timeout. Was 60s — that caused LLM "sleep+retry" loops on
+# upstream 504s. 15s gives upstream enough time but fails fast so fallback can kick in.
+DEFAULT_TIMEOUT = int(os.environ.get("ASYRE_SEARCH_TIMEOUT", "15"))
+
+
+class UpstreamUnavailable(RuntimeError):
+    """5xx / connection error / timeout from upstream. Try next endpoint in chain."""
+
+    def __init__(self, status_code, body, path):
+        self.status_code = status_code
+        self.body = body
+        self.path = path
+        super().__init__(f"upstream {status_code} on {path}")
+
+
+class RiskControlBlocked(RuntimeError):
+    """4xx from upstream — params malformed OR upstream rejected (rate-limit / risk control).
+    Try next endpoint, but if all fail it is likely a real param/keyword issue."""
+
+    def __init__(self, status_code, body, path):
+        self.status_code = status_code
+        self.body = body
+        self.path = path
+        super().__init__(f"blocked {status_code} on {path}")
+
+
 # Lazy-loaded singleton registry
 _registry = None
 
@@ -46,28 +72,34 @@ class PlatformAdapter:
         """Send GET request to API."""
         url = urljoin(self.BASE_URL + "/", endpoint.lstrip("/"))
         try:
-            resp = self.session.get(url, params=params, timeout=60)
+            resp = self.session.get(url, params=params, timeout=DEFAULT_TIMEOUT)
             resp.raise_for_status()
             return resp.json()
         except requests.exceptions.HTTPError as e:
             self._handle_error(e, resp)
         except requests.exceptions.RequestException as e:
-            raise RuntimeError(f"Request failed: {e}") from e
+            # Connection error / timeout / DNS failure - treat as upstream unavailable
+            raise UpstreamUnavailable(0, str(e), getattr(resp if 'resp' in dir() else None, 'url', endpoint)) from e
 
     def _post(self, endpoint: str, data: dict = None, params: dict = None) -> dict:
         """Send POST request to API."""
         url = urljoin(self.BASE_URL + "/", endpoint.lstrip("/"))
         try:
-            resp = self.session.post(url, json=data, params=params, timeout=60)
+            resp = self.session.post(url, json=data, params=params, timeout=DEFAULT_TIMEOUT)
             resp.raise_for_status()
             return resp.json()
         except requests.exceptions.HTTPError as e:
             self._handle_error(e, resp)
         except requests.exceptions.RequestException as e:
-            raise RuntimeError(f"Request failed: {e}") from e
+            raise UpstreamUnavailable(0, str(e), getattr(resp if 'resp' in dir() else None, 'url', endpoint)) from e
 
     def _call(self, action: str, variant: str = None, **kwargs) -> dict:
-        """Resolve endpoint from registry and call it.
+        """Resolve endpoint chain and call with automatic fallback on failure.
+
+        Walks the action's fallback chain (configured in action_map.json) trying
+        each endpoint in priority order. First endpoint that returns 2xx wins.
+        On 5xx / timeout / connection error, immediately tries next endpoint.
+        On 4xx, also tries next (might be endpoint-specific param mismatch).
 
         Args:
             action: CLI action name (info, user, posts, search, trending, comments)
@@ -75,31 +107,64 @@ class PlatformAdapter:
             **kwargs: parameters to pass to the endpoint
 
         Returns:
-            API response dict
-        """
-        spec = self.registry.resolve(self.PLATFORM_NAME, action, variant)
+            API response dict from the first successful endpoint.
 
-        if spec.method == "POST":
-            # Split kwargs: keys in spec.params go to query, rest to body
-            query_params = {}
-            body = {}
-            param_keys = set(spec.params.keys()) if spec.params else set()
-            for k, v in kwargs.items():
-                if k in param_keys:
-                    query_params[k] = v
+        Raises:
+            UpstreamUnavailable if all endpoints in chain fail with 5xx/timeout.
+            RiskControlBlocked  if all endpoints fail with 4xx (likely real param issue).
+        """
+        chain = self.registry.resolve_chain(self.PLATFORM_NAME, action, variant)
+        last_exc = None
+        attempts = []
+
+        for spec in chain:
+            try:
+                if spec.method == "POST":
+                    query_params = {}
+                    body = {}
+                    param_keys = set(spec.params.keys()) if spec.params else set()
+                    for k, v in kwargs.items():
+                        if k in param_keys:
+                            query_params[k] = v
+                        else:
+                            body[k] = v
+                    result = self._post(spec.path, data=body or None, params=query_params or None)
                 else:
-                    body[k] = v
-            return self._post(spec.path, data=body or None, params=query_params or None)
-        else:
-            return self._get(spec.path, params=kwargs or None)
+                    result = self._get(spec.path, params=kwargs or None)
+
+                # Tag which endpoint succeeded (for debugging/observability)
+                if isinstance(result, dict):
+                    result.setdefault("_asyre_meta", {})["endpoint_used"] = spec.path
+                    if attempts:
+                        result["_asyre_meta"]["fallback_attempts"] = attempts
+                return result
+            except (UpstreamUnavailable, RiskControlBlocked) as e:
+                attempts.append({"path": spec.path, "status": e.status_code,
+                                 "reason": type(e).__name__})
+                last_exc = e
+                continue
+
+        # All endpoints failed
+        if last_exc:
+            raise last_exc
+        raise RuntimeError(f"No endpoints available for {self.PLATFORM_NAME}/{action}")
 
     def _handle_error(self, error, resp):
-        """Raise RuntimeError with API error details."""
+        """Raise typed exception with API error details.
+
+        5xx -> UpstreamUnavailable (retry on next endpoint)
+        4xx -> RiskControlBlocked  (retry on next endpoint, but likely param/keyword issue)
+        """
         try:
             body = resp.json()
         except Exception:
             body = resp.text[:500]
-        raise RuntimeError(f"API error ({resp.status_code}): {body}")
+        sc = resp.status_code
+        if 500 <= sc < 600:
+            raise UpstreamUnavailable(sc, body, resp.url)
+        if 400 <= sc < 500:
+            raise RiskControlBlocked(sc, body, resp.url)
+        raise RuntimeError(f"API error ({sc}): {body}")
 
     # ── URL detection ─────────────────────────────────────────────
 
