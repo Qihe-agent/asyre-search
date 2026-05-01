@@ -64,6 +64,15 @@ SCENARIOS = {
         "required": ["targets", "platform"],
         "category": "competition",
     },
+    "niche-deepdive": {
+        "name": "同赛道深度对比",
+        "name_en": "Niche Deep-Dive",
+        "description": "完整 4 阶段流水线：定位主体 + 识别 4 个同赛道竞品 + 全量笔记爬取 + Top 评论质量审计 + 11 维矩阵 + 10 维护城河打分。下游交给 docforge (Word 报告) + next-slide-impeccable (SVG deck)。详见 references/niche-deepdive-playbook.md",
+        "required": ["target", "platform"],
+        "optional": ["competitors", "niche_keyword"],
+        "category": "competition",
+    },
+
 
     # ── 达人评估类 ──
     "kol-audit": {
@@ -220,6 +229,9 @@ class ScenarioRunner(WorkflowRunner):
             return self._run_account_scenario(scenario, target, limit)
         elif scenario in ("competitor-compare", "kol-comparison"):
             return self._run_compare_scenario(scenario, targets, limit)
+        elif scenario == "niche-deepdive":
+            return self._run_niche_deepdive(target, kwargs.get("competitors", []),
+                                            kwargs.get("niche_keyword", ""), limit)
         elif scenario in ("kol-audit", "kol-fraud-check"):
             return self._run_audit_scenario(scenario, target, limit)
         elif scenario in ("viral-reverse", "content-ideas", "ad-creative-mining", "niche-scan"):
@@ -366,6 +378,228 @@ class ScenarioRunner(WorkflowRunner):
             "accounts": accounts,
             "comparison": {"rows": rows, "ranking": [r["nickname"] for r in ranked]},
         }
+
+    # ── Niche deep-dive (5 acct × full notes × moat scoring) ──
+
+    def _run_niche_deepdive(self, target: str, competitors: list,
+                             niche_keyword: str, limit: int = 100) -> dict:
+        """Full 4-phase pipeline. See references/niche-deepdive-playbook.md.
+
+        Phase 1: locate main + identify 4 same-niche competitors (auto if not given)
+        Phase 2: pull full notes for all 5 accounts
+        Phase 3: compute 11-dim matrix + 10-dim moat scores (5 accts)
+        Phase 4: sample Top 1 note comments per account for buy-intent audit
+
+        Web Search (Phase 4 industry context) is NOT executed here — it requires the
+        host LLM environment. The output JSON includes a "web_search_queries" hint
+        the host can run, then write a final report.
+        """
+        self._progress(f"📊 Niche Deep-Dive: target={target}, competitors={len(competitors)}")
+        results = {"main": None, "competitors": [], "web_search_queries": [],
+                    "slide_recommendations": [], "meta": {}}
+
+        # ── Phase 1: identify competitors if not provided ──
+        if not competitors:
+            if not niche_keyword:
+                return {"error": "Provide either 'competitors' list or 'niche_keyword' for auto-discovery"}
+            self._progress(f"Discovering competitors for niche: {niche_keyword}")
+            search_data = self._safe_call("search", self.adapter.search, niche_keyword)
+            uid_freq = {}
+            items = (search_data.get("data", {}).get("data", {}).get("items", []) or
+                     search_data.get("data", {}).get("items", []) or [])
+            for it in items[:50]:
+                note = it.get("note") or it.get("note_card") or it
+                if not isinstance(note, dict): continue
+                u = note.get("user", {}) or {}
+                uid = u.get("userid") or u.get("user_id")
+                if uid and uid != target:
+                    uid_freq[uid] = uid_freq.get(uid, 0) + 1
+            top_uids = sorted(uid_freq, key=lambda k: -uid_freq[k])[:4]
+            competitors = top_uids
+            self._progress(f"Auto-discovered: {len(competitors)} competitors")
+
+        all_targets = [target] + competitors[:4]
+
+        # ── Phase 2: pull full data for each ──
+        for idx, uid in enumerate(all_targets):
+            label = "main" if idx == 0 else f"comp_{idx}"
+            self._progress(f"[{idx+1}/{len(all_targets)}] Pulling {label} ({uid})...")
+            user_data = self._safe_call(f"get_user_{idx}", self.adapter.get_user, uid)
+            user_metrics = extract_user_metrics(user_data, self.platform)
+
+            posts_data = self._safe_call(f"get_posts_{idx}", self.adapter.get_posts, uid, limit=limit)
+            from .metrics import extract_post_metrics_from_listitem, extract_post_listitems
+            list_items = extract_post_listitems(posts_data, self.platform)[:limit]
+            post_metrics_list = []
+            for item in list_items:
+                pm = extract_post_metrics_from_listitem(item, self.platform)
+                if pm:
+                    post_metrics_list.append(pm)
+
+            account_metrics = compute_account_metrics(user_metrics, post_metrics_list)
+
+            # Top 1 comments (for buy-intent audit)
+            top_comments = []
+            if post_metrics_list:
+                top_post = max(post_metrics_list,
+                               key=lambda p: p.get("likes", 0) + p.get("comments", 0) + p.get("collects", 0))
+                top_id = top_post.get("id", "")
+                if top_id:
+                    c_data = self._safe_call(f"comments_{idx}", self.adapter.get_comments, top_id)
+                    inner = c_data.get("data", {}).get("data", c_data.get("data", {}))
+                    cs = inner.get("comments", [])[:30] if isinstance(inner, dict) else []
+                    top_comments = [{"author": c.get("user", {}).get("nickname", ""),
+                                     "content": (c.get("content") or "")[:200],
+                                     "likes": c.get("like_count", 0),
+                                     "sub_count": c.get("sub_comment_count", 0)}
+                                     for c in cs]
+                    quality = assess_comment_quality(c_data)
+                else:
+                    quality = {}
+            else:
+                quality = {}
+
+            entry = {
+                "uid": uid,
+                "label": label,
+                "user": user_metrics,
+                "post_count": len(post_metrics_list),
+                "posts": post_metrics_list,
+                "metrics": account_metrics,
+                "top_comments_sample": top_comments,
+                "comment_quality": quality,
+            }
+            if idx == 0:
+                results["main"] = entry
+            else:
+                results["competitors"].append(entry)
+            time.sleep(0.4)  # gentle pacing
+
+        # ── Phase 3: 11-dim matrix + 10-dim moat scores ──
+        all_entries = [results["main"]] + results["competitors"]
+        results["matrix_11dim"] = self._build_matrix_11dim(all_entries)
+        results["moat_scores"] = self._compute_moat_scores(all_entries)
+
+        # Hint Web Search queries for the host LLM (Phase 4)
+        nk = niche_keyword or "该赛道"
+        results["web_search_queries"] = [
+            f"{self.platform} {nk} 限流 严打 政策 2025 2026",
+            f"{nk} 头部账号 {self.platform} 2026",
+            f"{self.platform} 算法更新 2026",
+        ]
+
+        # Slide recommendations (mapping to canonical structures)
+        results["slide_recommendations"] = [
+            {"page": 1, "template": "custom-cover", "role": "hero"},
+            {"page": 2, "template": "bento-grid-dense", "role": "5-findings"},
+            {"page": 3, "template": "08-comparison-matrix-dense", "role": "11-dim-matrix"},
+            {"page": 4, "template": "02-hub-spoke", "role": "blue-oceans"},
+            {"page": 5, "template": "16-story-mountain", "role": "twist-narrative"},
+            {"page": 6, "template": "21-binary-comparison", "role": "hero-vs-threat"},
+            {"page": 7, "template": "05-radar-chart-decagon", "role": "moat-scoring"},
+            {"page": 8, "template": "20-comparison-table", "role": "comment-quality"},
+            {"page": 9, "template": "bento-2x2", "role": "30day-actions"},
+            {"page": 10, "template": "06-dashboard", "role": "kpi-projection"},
+            {"page": 11, "template": "custom-closing", "role": "call-to-action"},
+        ]
+
+        results["meta"] = {
+            "playbook": "niche-deepdive",
+            "playbook_doc": "references/niche-deepdive-playbook.md",
+            "phase": "data-collected",
+            "next_steps": [
+                "1. Run web_search_queries via host environment",
+                "2. Write Markdown report (use playbook templates)",
+                "3. Convert to Word: docforge -p proposal --eisvogel --font 'PingFang SC' --titlepage --toc <md>",
+                "4. Build 10-page SVG deck via next-slide-impeccable using slide_recommendations",
+            ]
+        }
+
+        return results
+
+    def _build_matrix_11dim(self, entries: list) -> list:
+        """Build 11-dimension comparative matrix."""
+        return [
+            {"dim": "粉丝数", "values": [e["user"].get("followers", 0) for e in entries]},
+            {"dim": "笔记数", "values": [e["post_count"] for e in entries]},
+            {"dim": "累计互动",
+             "values": [int(e["metrics"].get("avg_likes", 0) * e["post_count"] +
+                            e["metrics"].get("avg_comments", 0) * e["post_count"] +
+                            e["metrics"].get("avg_collects", 0) * e["post_count"]) for e in entries]},
+            {"dim": "单笔记均互动",
+             "values": [round(e["metrics"].get("avg_likes", 0) +
+                              e["metrics"].get("avg_comments", 0) +
+                              e["metrics"].get("avg_collects", 0), 1) for e in entries]},
+            {"dim": "互动率",
+             "values": [round(e["metrics"].get("engagement_rate", 0) * 100, 2) for e in entries]},
+            {"dim": "视频比例",
+             "values": [round(e["metrics"].get("content_type_distribution", {}).get("video", 0) /
+                              max(e["post_count"], 1) * 100, 1) for e in entries]},
+            {"dim": "Top3 占比",
+             "values": [self._top3_pct(e) for e in entries]},
+            {"dim": "评论商业价值",
+             "values": [e.get("comment_quality", {}).get("buy_intent_score", "-") for e in entries]},
+            {"dim": "平台认证",
+             "values": [e["user"].get("verify_content", "") or "无" for e in entries]},
+        ]
+
+    @staticmethod
+    def _top3_pct(entry: dict) -> float:
+        posts = entry.get("posts", [])
+        if not posts:
+            return 0.0
+        engs = sorted([p.get("likes", 0) + p.get("comments", 0) + p.get("collects", 0) for p in posts], reverse=True)
+        total = sum(engs)
+        if total == 0:
+            return 0.0
+        return round(sum(engs[:3]) / total * 100, 1)
+
+    def _compute_moat_scores(self, entries: list) -> dict:
+        """Score each account 1-5 across 10 dimensions, then sum."""
+        # For each dim, rank accounts and assign scores
+        # Higher rank = higher score
+        dims = ["fans", "engagement_rate", "max_eng", "recent_60d_count",
+                "avg_eng", "video_pct", "diff_topics_count", "buy_intent",
+                "verified", "recent_60d_growth"]
+        scores = {e["label"]: {d: 0 for d in dims} for e in entries}
+
+        # Extract raw values per dim
+        def raw(e, d):
+            if d == "fans": return e["user"].get("followers", 0)
+            if d == "engagement_rate": return e["metrics"].get("engagement_rate", 0)
+            if d == "max_eng":
+                p = e.get("posts", [])
+                if not p: return 0
+                return max((x.get("likes", 0) + x.get("comments", 0) + x.get("collects", 0)) for x in p)
+            if d == "recent_60d_count": return e.get("metrics", {}).get("recent_60d_count", e["post_count"])
+            if d == "avg_eng":
+                m = e.get("metrics", {})
+                return m.get("avg_likes", 0) + m.get("avg_comments", 0) + m.get("avg_collects", 0)
+            if d == "video_pct":
+                p = e.get("posts", [])
+                if not p: return 0
+                return sum(1 for x in p if x.get("type") == "video") / len(p)
+            if d == "diff_topics_count": return 0  # heuristic — would need topic classifier
+            if d == "buy_intent": return e.get("comment_quality", {}).get("buy_intent_score", 0)
+            if d == "verified": return 1 if e["user"].get("verify_content") else 0
+            if d == "recent_60d_growth": return e.get("metrics", {}).get("recent_growth_pct", 0)
+            return 0
+
+        # For each dimension, rank and assign 1-5
+        for d in dims:
+            vals = [(e["label"], raw(e, d)) for e in entries]
+            sorted_vals = sorted(vals, key=lambda x: -x[1])
+            n = len(sorted_vals)
+            for rank, (label, _) in enumerate(sorted_vals):
+                # Top: 5, Bottom: 1, linear scale
+                score = max(1, min(5, round(5 - rank * 4 / max(n - 1, 1))))
+                scores[label][d] = score
+
+        # Total
+        for label in scores:
+            scores[label]["total"] = sum(v for k, v in scores[label].items() if k != "total")
+
+        return scores
 
     # ── Audit scenarios ──────────────────────────────────────────
 

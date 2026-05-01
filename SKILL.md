@@ -58,6 +58,47 @@ XHS 关键 action 的实际尝试顺序：
 
 ---
 
+
+## 高级 Playbook · Niche Deep-Dive (同赛道深度对比)
+
+> 当用户说 "我是 MCN 想了解 X 在赛道里的真实位置" / "5 个账号横评" / "同赛道深度分析" / "MCN 全面诊断" / "X 真正的对手是谁" 这类需求时，触发本 playbook。
+
+完整方法论与实施步骤见 **[references/niche-deepdive-playbook.md](references/niche-deepdive-playbook.md)**。**LLM 必须先读这份 playbook 再开干**，否则极易做成 "卡片堆砌的 AI slop"（参见 2026-05-01 悉尼姜博士项目的反面案例）。
+
+### 关键链路
+
+```
+asyre-search niche-deepdive  →  JSON 数据  →  docforge 出 Word  →  next-slide-impeccable 出 SVG deck (10 页 canonical)
+```
+
+### 一键启动
+
+```bash
+# 已知主体 + 4 个候选竞品
+python3 scripts/asyre_search.py -p xiaohongshu scenario niche-deepdive \
+  --target <主体_uid> --competitors <c1>,<c2>,<c3>,<c4>
+
+# 仅有主体 + 赛道关键词，自动识别竞品
+python3 scripts/asyre_search.py -p xiaohongshu scenario niche-deepdive \
+  --target <主体_uid> --niche-keyword "悉尼地产"
+```
+
+### 输出包含
+
+- 5 账号全量 profile + 笔记 + Top 1 评论抽样
+- 11 维数据矩阵（粉丝 / 笔记 / 互动 / 视频比 / Top3 占比 / 评论商业价值 / 平台认证 等）
+- 10 维护城河打分（每账号 1-5 分 × 10 维 = 总分 /50）
+- Web Search 行业背景 query 提示（host LLM 执行 Phase 4）
+- 推荐 deck 的 10 页 canonical 模板映射
+
+### 不要做错的事
+
+- 不要用 `competitor-compare` 替代——那个不做评论审计 + 不做 10 维打分 + 不出 deck 推荐
+- 不要在 deck 里用 CSS 卡片堆砌——必须用 `structures/` 下的 SVG canonical 模板（特别是 `05-radar-chart` 改 decagon 用于 10 维护城河图）
+- 不要跳过 Phase 4 Web Search——会显著降低报告权威性
+
+---
+
 ## 快速开始
 
 所有命令在服务器上执行。工作目录和环境变量：

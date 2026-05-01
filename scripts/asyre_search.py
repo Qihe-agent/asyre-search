@@ -217,6 +217,8 @@ def cmd_scenario(args):
     result = runner.run(
         target=args.target or "",
         targets=args.targets or [],
+        competitors=([c.strip() for c in args.competitors.split(",") if c.strip()] if args.competitors else []),
+        niche_keyword=args.niche_keyword or "",
         keyword=args.keyword or "",
         platforms=args.platforms,
         limit=args.limit,
@@ -333,6 +335,8 @@ def main():
     p.add_argument("--target", help="User ID or URL (for account/kol scenarios)")
     p.add_argument("--targets", nargs="+", help="Multiple user IDs (for compare scenarios)")
     p.add_argument("--keyword", help="Search keyword (for content/monitor scenarios)")
+    p.add_argument("--competitors", help="Comma-separated competitor user IDs (for niche-deepdive)")
+    p.add_argument("--niche-keyword", dest="niche_keyword", help="Niche keyword for auto-discovering competitors (for niche-deepdive)")
     p.add_argument("--platforms", nargs="+", default=["douyin", "xiaohongshu", "bilibili"])
     p.add_argument("--limit", type=int, default=20)
     p.add_argument("--error-policy", choices=["continue", "abort"], default="continue")
